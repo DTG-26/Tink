@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bites by Khalid — WhatsApp Direct-Cart Catalog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP STORE HEADER -->
+  <header class="relative w-full bg-white border-b border-zinc-200">
+    <!-- Banner -->
+    <div class="relative w-full h-36 sm:h-48 bg-gradient-to-r from-emerald-600 via-teal-700 to-zinc-900 overflow-hidden">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&h=400&fit=crop" 
+           alt="Bites by Khalid banner" 
+           class="w-full h-full object-cover">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+    </div>
+
+    <!-- Store Profile Container -->
+    <div class="max-w-4xl mx-auto px-4 pb-5 sm:px-6">
+      <div class="relative -mt-14 sm:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div class="flex items-end gap-3.5">
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0">
+            <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?w=200&h=200&fit=crop" 
+                 alt="Bites by Khalid logo" 
+                 class="w-full h-full object-cover">
+          </div>
+          <div class="pt-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900">
+                Bites by Khalid
+              </h1>
+              <!-- Verified Pro Badge -->
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm" title="Verified Store">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                Verified Store
+              </span>
+            </div>
+            <p class="text-xs text-zinc-500 font-medium mt-0.5">
+              +234 801 234 5678 • Abuja, Nigeria
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex items-center gap-2 pt-1 sm:pt-0">
+          <button onclick="toggleSellerMode()" id="seller-mode-btn"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95 transition-all shadow-sm">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+            <span id="seller-mode-text">Seller Mode</span>
+          </button>
+          <span id="store-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Open
+          </span>
+          <a href="https://wa.me/2348012345678" target="_blank"
+             class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#25D366] text-white hover:bg-[#20ba5a] active:scale-95 transition-all shadow-sm">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+            Chat
+          </a>
+        </div>
+      </div>
+
+      <p class="mt-3.5 text-xs sm:text-sm text-zinc-600 max-w-2xl leading-relaxed">
+        Artisanal smashed burgers, loaded suya fries & gourmet chilled drinks in Abuja. Freshly prepared to order!
+      </p>
+    </div>
+  </header>
+
+  <!-- CATEGORY PILLS NAVIGATION -->
+  <nav class="sticky top-0 z-20 w-full bg-white/90 backdrop-blur-md border-b border-zinc-200 py-2.5 px-4">
+    <div class="max-w-4xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth" id="categories-container">
+      <!-- Dynamic category pills inserted here -->
+    </div>
+  </nav>
+
+  <!-- MAIN CATALOG CONTENT -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-5 sm:px-6">
+    <!-- Search Bar -->
+    <div class="relative mb-5">
+      <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"></i>
+      <input type="text" id="search-input" placeholder="Search menu items..." 
+             class="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-zinc-200 text-xs sm:text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-sm transition-all">
+    </div>
+
+    <!-- Product Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5 pb-24" id="products-grid">
+      <!-- Dynamic product cards inserted here -->
+    </div>
+  </main>
+
+  <!-- FLOATING STICKY CART BAR (CRISP WHITE THEME) -->
+  <aside id="sticky-cart-bar" class="fixed bottom-4 inset-x-0 z-30 px-4 pointer-events-none transition-all duration-300 opacity-0 translate-y-6">
+    <div class="max-w-md mx-auto pointer-events-auto">
+      <button onclick="toggleCartDrawer(true)" id="floating-cart-btn"
+              class="w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md text-slate-900 shadow-xl shadow-slate-300/40 active:scale-[0.99] transition-all border border-slate-200 hover:border-emerald-500/40">
+        <div class="flex items-center gap-3">
+          <div class="relative w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+            <span id="cart-badge-count" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+              0
+            </span>
+          </div>
+          <div class="text-left">
+            <p id="cart-items-label" class="text-xs text-slate-500 font-medium">0 items in cart</p>
+            <p id="cart-total-label" class="text-base font-extrabold text-slate-950 tracking-tight">₦0</p>
+          </div>
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm">
+          <span>View Cart</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </div>
+      </button>
+    </div>
+  </aside>
+
+  <!-- CART & CHECKOUT DRAWER (SLIDE-UP MODAL) -->
+  <div id="cart-drawer-backdrop" onclick="toggleCartDrawer(false)" 
+       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-0 pointer-events-none"></div>
+
+  <div id="cart-drawer" 
+       class="fixed inset-x-0 bottom-0 z-50 max-w-lg mx-auto bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 translate-y-full max-h-[90vh] flex flex-col">
+    <!-- Drawer Header -->
+    <div class="p-4 border-b border-zinc-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-bold text-base text-zinc-900">Your Cart</h3>
+      </div>
+      <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-full bg-zinc-100 text-zinc-500 hover:text-zinc-800 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Items List -->
+    <div class="p-4 overflow-y-auto flex-1 divide-y divide-zinc-100" id="drawer-items-list">
+      <!-- Cart items inserted here -->
+    </div>
+
+    <!-- Customer Details Form -->
+    <div class="p-4 bg-zinc-50 border-t border-zinc-100 space-y-3">
+      <h4 class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Delivery Information</h4>
+      <div>
+        <input type="text" id="cust-name" placeholder="Full Name *" 
+               class="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+      </div>
+      <div>
+        <input type="tel" id="cust-phone" placeholder="WhatsApp Phone Number (e.g. 08012345678) *" 
+               class="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+      </div>
+      <div>
+        <textarea id="cust-address" rows="2" placeholder="Delivery Address *" 
+                  class="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"></textarea>
+      </div>
+      <div>
+        <input type="text" id="cust-note" placeholder="Order Note (Optional - e.g. Extra sauce)" 
+               class="w-full px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+      </div>
+    </div>
+
+    <!-- Vendor Bank Transfer Preview -->
+    <div class="px-4 py-3 bg-emerald-50/60 border-t border-emerald-100 flex items-start justify-between text-xs">
+      <div>
+        <p class="font-bold text-emerald-900 flex items-center gap-1.5">
+          <i data-lucide="building" class="w-3.5 h-3.5 text-emerald-700"></i>
+          Direct Transfer Details
+        </p>
+        <p class="text-emerald-800 text-[11px] mt-0.5">
+          <span class="font-semibold">GTBank:</span> <span class="font-mono font-bold" id="bank-acc-display">0123456789</span> (Khalid Gourmet Kitchen)
+        </p>
+      </div>
+      <button onclick="navigator.clipboard.writeText('0123456789'); alert('Account number copied!');"
+              class="px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-[10px] font-bold text-emerald-700 shadow-sm active:scale-95">
+        Copy
+      </button>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="p-4 border-t border-zinc-100 bg-white">
+      <div class="flex items-center justify-between mb-3 text-sm">
+        <span class="text-zinc-500 font-medium">Total Amount</span>
+        <span id="drawer-total-amount" class="text-lg font-extrabold text-zinc-900">₦0</span>
+      </div>
+      <button onclick="handleSendOrderWhatsApp()" 
+              class="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#25D366] text-white font-bold text-sm hover:bg-[#20ba5a] active:scale-95 transition-all shadow-lg shadow-emerald-500/20">
+        <i data-lucide="message-circle" class="w-4 h-4"></i>
+        <span>Send Order on WhatsApp</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="w-full pt-8 pb-24 text-center border-t border-zinc-200 mt-12 bg-white">
+    <div class="max-w-4xl mx-auto px-4 flex flex-col items-center justify-center gap-1.5">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium text-zinc-600 bg-zinc-100">
+        <span>Powered by</span>
+        <span class="font-bold text-zinc-900">DirectCart</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-0.5"></span>
+      </div>
+      <p class="text-[11px] text-zinc-400">
+        Zero gateway fees. Instant direct WhatsApp cart.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Product Catalog State
+    const vendor = {
+      storeName: 'Bites by Khalid',
+      slug: 'bites-by-khalid',
+      whatsapp: '2348012345678',
+      bankName: 'GTBank',
+      accountNumber: '0123456789',
+      accountName: 'Khalid Gourmet Kitchen',
+      isOpen: true
+    };
+
+    const categories = [
+      { id: 'all', name: 'All' },
+      { id: 'cat-1', name: 'Signature Burgers' },
+      { id: 'cat-2', name: 'Loaded Fries' },
+      { id: 'cat-3', name: 'Drinks & Shakes' }
+    ];
+
+    const products = [
+      {
+        id: 'prod-1',
+        categoryId: 'cat-1',
+        title: 'The Khalid Monster Burger',
+        description: 'Double smashed beef patties, caramelized onions, cheddar cheese & secret house sauce on brioche bun.',
+        price: 6500,
+        imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=600&fit=crop',
+        isAvailable: true
+      },
+      {
+        id: 'prod-2',
+        categoryId: 'cat-1',
+        title: 'Crispy Truffle Chicken Burger',
+        description: 'Buttermilk fried chicken breast, truffle mayo, pickled slaw and melted provolone.',
+        price: 5200,
+        imageUrl: 'https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=600&h=600&fit=crop',
+        isAvailable: true
+      },
+      {
+        id: 'prod-3',
+        categoryId: 'cat-2',
+        title: 'Loaded Suya Fries',
+        description: 'Golden spiced french fries topped with suya beef slices, yaji mayo, and diced spring onions.',
+        price: 3800,
+        imageUrl: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=600&h=600&fit=crop',
+        isAvailable: true
+      },
+      {
+        id: 'prod-4',
+        categoryId: 'cat-3',
+        title: 'Salted Caramel Milkshake',
+        description: 'Rich creamy vanilla ice cream blended with homemade salted caramel and whipped cream.',
+        price: 3000,
+        imageUrl: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&h=600&fit=crop',
+        isAvailable: true
+      },
+      {
+        id: 'prod-5',
+        categoryId: 'cat-3',
+        title: 'Fresh Hibiscus Zobo Spritz',
+        description: 'Craft brewed Nigerian hibiscus, fresh ginger, cloves, and a splash of sparkling soda.',
+        price: 1800,
+        imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&h=600&fit=crop',
+        isAvailable: true
+      },
+      {
+        id: 'prod-6',
+        categoryId: 'cat-1',
+        title: 'BBQ Bacon Smash (Sold Out)',
+        description: 'Beef patty topped with crispy beef bacon and smoky hickory barbecue sauce.',
+        price: 5500,
+        imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=600&fit=crop',
+        isAvailable: false
+      }
+    ];
+
+    let selectedCategoryId = 'all';
+    let searchQuery = '';
+
+    // Cart in LocalStorage
+    const STORAGE_KEY = `directcart_${vendor.slug}`;
+    let cart = {};
+
+    function loadCart() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) cart = JSON.parse(stored);
+      } catch (e) {
+        cart = {};
+      }
+    }
+
+    function saveCart() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+      } catch (e) {}
+      renderUI();
+    }
+
+    function formatNaira(num) {
+      return new Intl.NumberFormat('en-NG').format(num);
+    }
+
+    function updateItemQuantity(prodId, delta) {
+      const current = cart[prodId] || 0;
+      const next = current + delta;
+      if (next <= 0) {
+        delete cart[prodId];
+      } else {
+        cart[prodId] = next;
+      }
+      saveCart();
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categories-container');
+      container.innerHTML = categories.map(cat => {
+        const isSelected = selectedCategoryId === cat.id;
+        const count = cat.id === 'all' 
+          ? products.length 
+          : products.filter(p => p.categoryId === cat.id).length;
+
+        return `
+          <button onclick="setCategory('${cat.id}')"
+                  class="flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                    isSelected 
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20' 
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }">
+            ${cat.name}
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+              isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
+            }">${count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCategory(catId) {
+      selectedCategoryId = catId;
+      renderCategories();
+      renderProducts();
+    }
+
+    let isSellerMode = false;
+
+    function toggleSellerMode() {
+      isSellerMode = !isSellerMode;
+      const btn = document.getElementById('seller-mode-btn');
+      const txt = document.getElementById('seller-mode-text');
+      if (isSellerMode) {
+        btn.classList.remove('bg-zinc-900', 'text-white');
+        btn.classList.add('bg-emerald-600', 'text-white', 'ring-2', 'ring-emerald-400');
+        txt.textContent = 'Exit Seller Mode';
+      } else {
+        btn.classList.remove('bg-emerald-600', 'ring-2', 'ring-emerald-400');
+        btn.classList.add('bg-zinc-900', 'text-white');
+        txt.textContent = 'Seller Mode';
+      }
+      renderProducts();
+    }
+
+    function toggleProductStock(prodId) {
+      const prod = products.find(p => p.id === prodId);
+      if (prod) {
+        prod.isAvailable = !prod.isAvailable;
+        renderProducts();
+      }
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('products-grid');
+      const filtered = products.filter(p => {
+        if (selectedCategoryId !== 'all' && p.categoryId !== selectedCategoryId) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          return p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-zinc-400">
+            <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto stroke-1 mb-2"></i>
+            <p class="text-sm font-semibold">No items match your search</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => {
+        const qty = cart[p.id] || 0;
+        return `
+          <div class="group relative flex flex-col justify-between rounded-2xl bg-white border border-zinc-200/80 shadow-sm overflow-hidden ${!p.isAvailable ? 'opacity-75 bg-zinc-50' : ''}">
+            <div>
+              <div class="relative aspect-square w-full bg-zinc-100 overflow-hidden">
+                <img src="${p.imageUrl}" alt="${p.title}" class="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300">
+                ${!p.isAvailable ? `
+                  <div class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-zinc-900/90 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Sold Out
+                  </div>
+                ` : ''}
+
+                ${isSellerMode ? `
+                  <button onclick="toggleProductStock('${p.id}')"
+                          class="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-md transition-all ${
+                            p.isAvailable 
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                              : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                          }">
+                    <i data-lucide="${p.isAvailable ? 'check-circle' : 'package-x'}" class="w-3.5 h-3.5"></i>
+                    ${p.isAvailable ? 'In Stock' : 'Sold Out'}
+                  </button>
+                ` : ''}
+              </div>
+              <div class="p-3.5 sm:p-4">
+                <h3 class="font-semibold text-sm sm:text-base text-zinc-900 line-clamp-1">${p.title}</h3>
+                <p class="mt-1 text-xs text-zinc-500 line-clamp-2 leading-relaxed">${p.description}</p>
+              </div>
+            </div>
+            <div class="p-3.5 sm:p-4 pt-0 flex items-center justify-between gap-2 mt-auto">
+              <div>
+                <span class="text-[11px] text-zinc-400 block font-medium">Price</span>
+                <span class="text-sm sm:text-base font-bold text-zinc-900">₦${formatNaira(p.price)}</span>
+              </div>
+              <div>
+                ${isSellerMode ? `
+                  <button onclick="toggleProductStock('${p.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                    p.isAvailable ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-zinc-300 text-zinc-600 bg-zinc-100'
+                  }">
+                    1-Tap Toggle
+                  </button>
+                ` : !p.isAvailable ? `
+                  <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-400 bg-zinc-100 cursor-not-allowed">Unavailable</span>
+                ` : qty > 0 ? `
+                  <div class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 rounded-xl p-1 shadow-sm">
+                    <button onclick="updateItemQuantity('${p.id}', -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all">
+                      <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <span class="w-5 text-center text-xs font-bold text-emerald-950">${qty}</span>
+                    <button onclick="updateItemQuantity('${p.id}', 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all">
+                      <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                ` : `
+                  <button onclick="updateItemQuantity('${p.id}', 1)" class="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderCartSummary() {
+      let totalCount = 0;
+      let totalAmount = 0;
+
+      for (const [id, qty] of Object.entries(cart)) {
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          totalCount += qty;
+          totalAmount += prod.price * qty;
+        }
+      }
+
+      const stickyBar = document.getElementById('sticky-cart-bar');
+      const badge = document.getElementById('cart-badge-count');
+      const itemsLabel = document.getElementById('cart-items-label');
+      const totalLabel = document.getElementById('cart-total-label');
+      const drawerTotal = document.getElementById('drawer-total-amount');
+
+      badge.textContent = totalCount;
+      itemsLabel.textContent = `${totalCount} ${totalCount === 1 ? 'item' : 'items'} in cart`;
+      totalLabel.textContent = `₦${formatNaira(totalAmount)}`;
+      drawerTotal.textContent = `₦${formatNaira(totalAmount)}`;
+
+      if (totalCount > 0) {
+        stickyBar.classList.remove('opacity-0', 'translate-y-6');
+        stickyBar.classList.add('opacity-100', 'translate-y-0');
+      } else {
+        stickyBar.classList.add('opacity-0', 'translate-y-6');
+        stickyBar.classList.remove('opacity-100', 'translate-y-0');
+        toggleCartDrawer(false);
+      }
+
+      // Render Drawer items
+      const drawerList = document.getElementById('drawer-items-list');
+      if (totalCount === 0) {
+        drawerList.innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Your cart is currently empty.</p>`;
+      } else {
+        drawerList.innerHTML = Object.entries(cart).map(([id, qty]) => {
+          const prod = products.find(p => p.id === id);
+          if (!prod) return '';
+          return `
+            <div class="py-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <img src="${prod.imageUrl}" class="w-12 h-12 rounded-xl object-cover bg-zinc-100">
+                <div>
+                  <h4 class="text-xs font-bold text-zinc-900">${prod.title}</h4>
+                  <p class="text-xs text-zinc-500">₦${formatNaira(prod.price)} each</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 bg-zinc-100 rounded-lg p-1">
+                <button onclick="updateItemQuantity('${prod.id}', -1)" class="w-6 h-6 flex items-center justify-center rounded bg-white text-zinc-700 hover:bg-zinc-200">
+                  <i data-lucide="minus" class="w-3 h-3"></i>
+                </button>
+                <span class="w-4 text-center text-xs font-bold">${qty}</span>
+                <button onclick="updateItemQuantity('${prod.id}', 1)" class="w-6 h-6 flex items-center justify-center rounded bg-emerald-600 text-white hover:bg-emerald-700">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleCartDrawer(open) {
+      const backdrop = document.getElementById('cart-drawer-backdrop');
+      const drawer = document.getElementById('cart-drawer');
+      if (open) {
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        backdrop.classList.add('opacity-100', 'pointer-events-auto');
+        drawer.classList.remove('translate-y-full');
+      } else {
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+        drawer.classList.add('translate-y-full');
+      }
+    }
+
+    function handleSendOrderWhatsApp() {
+      const name = document.getElementById('cust-name').value.trim();
+      const phone = document.getElementById('cust-phone').value.trim();
+      const address = document.getElementById('cust-address').value.trim();
+      const note = document.getElementById('cust-note').value.trim();
+
+      if (!name || !phone || !address) {
+        alert('Please fill in your Name, Phone Number, and Delivery Address.');
+        return;
+      }
+
+      // Compile items
+      let itemsList = [];
+      let totalAmount = 0;
+      for (const [id, qty] of Object.entries(cart)) {
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+          const itemTotal = prod.price * qty;
+          totalAmount += itemTotal;
+          itemsList.push(`• ${qty}x ${prod.title} — ₦${formatNaira(itemTotal)}`);
+        }
+      }
+
+      // Customer details block
+      const custInfo = [
+        `👤 *Customer:* ${name}`,
+        `📞 *Phone:* ${phone}`,
+        `📍 *Delivery Address:* ${address}`
+      ];
+      if (note) {
+        custInfo.push(`📝 *Note:* ${note}`);
+      }
+
+      // Compile exact Blueprint message template (Section 4.4)
+      const msg = [
+        `🛍️ *NEW ORDER - ${vendor.storeName}*`,
+        `------------------------------`,
+        custInfo.join('\n'),
+        '',
+        `🛒 *ORDER DETAILS:*`,
+        itemsList.join('\n'),
+        '',
+        `------------------------------`,
+        `💰 *TOTAL AMOUNT:* ₦${formatNaira(totalAmount)}`,
+        '',
+        `💳 *PAYMENT INSTRUCTIONS (DIRECT TRANSFER):*`,
+        `Bank: ${vendor.bankName}`,
+        `Account: ${vendor.accountNumber}`,
+        `Name: ${vendor.accountName}`,
+        '',
+        `_Please reply to confirm availability and acknowledge payment!_`
+      ].join('\n');
+
+      // CRITICAL RULE 4.3: Direct synchronous redirect
+      const url = `https://wa.me/${vendor.whatsapp}?text=${encodeURIComponent(msg)}`;
+      window.location.href = url;
+    }
+
+    function renderUI() {
+      renderProducts();
+      renderCartSummary();
+    }
+
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderProducts();
+    });
+
+    // Initialize
+    loadCart();
+    renderCategories();
+    renderUI();
+  </script>
+</body>
+</html>
