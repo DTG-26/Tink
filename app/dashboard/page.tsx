@@ -7,8 +7,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Vendor, Category, Product } from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { signOutVendor } from '@/lib/auth';
 import { ProductList } from '@/components/dashboard/ProductList';
 import { ProductModal } from '@/components/dashboard/ProductModal';
 import { CategoryManager } from '@/components/dashboard/CategoryManager';
@@ -25,10 +27,12 @@ import {
   Power,
   Sparkles,
   ArrowRight,
-  Loader2
+  Loader2,
+  LogOut
 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,35 +49,31 @@ export default function DashboardPage() {
     async function loadData() {
       setIsLoading(true);
 
-      // Clean up previous demo keys if any
-      try {
-        localStorage.removeItem('directcart_dashboard_vendor');
-        localStorage.removeItem('directcart_dashboard_categories');
-        localStorage.removeItem('directcart_dashboard_products');
-      } catch {
-        // Ignore
-      }
-
       const localVendorId = typeof window !== 'undefined' ? localStorage.getItem('tink_vendor_id') : null;
 
       if (isSupabaseConfigured) {
+        // 1. Check current logged-in user session
+        const { data: authData } = await supabase.auth.getUser();
+        const currentUser = authData?.user;
+
         let v: Vendor | null = null;
 
-        if (localVendorId) {
+        // Fetch vendor by auth user ID
+        if (currentUser) {
           const { data } = await supabase
             .from('vendors')
             .select('*')
-            .eq('id', localVendorId)
+            .eq('id', currentUser.id)
             .maybeSingle();
           if (data) v = data as Vendor;
         }
 
-        if (!v) {
+        // Fallback: check localStorage vendor ID if session check wasn't immediate
+        if (!v && localVendorId) {
           const { data } = await supabase
             .from('vendors')
             .select('*')
-            .order('created_at', { ascending: false })
-            .limit(1)
+            .eq('id', localVendorId)
             .maybeSingle();
           if (data) v = data as Vendor;
         }
@@ -102,9 +102,15 @@ export default function DashboardPage() {
           setIsLoading(false);
           return;
         }
+
+        // If not logged in and no local vendor, redirect to login
+        if (!currentUser && !localVendorId) {
+          router.push('/login');
+          return;
+        }
       }
 
-      // Check localStorage for offline created store
+      // Check localStorage for offline created store if any
       try {
         const localVendor = localStorage.getItem('tink_vendor');
         if (localVendor) {
@@ -121,7 +127,12 @@ export default function DashboardPage() {
     }
 
     loadData();
-  }, []);
+  }, [router]);
+
+  const handleLogout = async () => {
+    await signOutVendor();
+    router.push('/login');
+  };
 
   // Toggle Store Open/Closed
   const handleToggleStoreOpen = async () => {
@@ -365,7 +376,7 @@ export default function DashboardPage() {
         </main>
 
         <footer className="border-t border-slate-200/80 py-6 text-center text-xs text-slate-400 bg-white">
-          <p>© {new Date().getFullYear()} Tink • Your Shop in a Link.</p>
+          <p>© {new Date().getFullYear()} Tink is a product of Danmari Tech Group.</p>
         </footer>
       </div>
     );
@@ -392,9 +403,15 @@ export default function DashboardPage() {
               <Sparkles className="w-3 h-3 text-blue-600" />
               100% Free • Unlimited
             </span>
+            <span className="hidden md:inline-flex text-[11px] font-medium text-slate-400 border-l border-slate-200 pl-2.5">
+              A product of Danmari Tech Group
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
+            <span className="hidden lg:inline-flex text-[11px] font-medium text-slate-400 mr-1">
+              Tink is a product of Danmari Tech Group
+            </span>
             <Link
               href={`/${vendor.slug}`}
               target="_blank"
@@ -410,6 +427,14 @@ export default function DashboardPage() {
               title="Store & Bank Settings"
             >
               <Settings className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Log Out of Seller Dashboard"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -601,6 +626,7 @@ export default function DashboardPage() {
         onSave={handleSaveProduct}
         initialProduct={editingProduct}
         categories={categories}
+        vendorId={vendor.id}
       />
 
       {/* Store Settings Modal */}

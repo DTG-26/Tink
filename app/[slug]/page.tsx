@@ -13,13 +13,13 @@ interface StorefrontPageProps {
 }
 
 export async function generateMetadata({ params }: StorefrontPageProps): Promise<Metadata> {
-  const { slug } = params;
+  const normalizedSlug = (params.slug || '').toLowerCase().trim();
 
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && normalizedSlug) {
     const { data: vendor } = await supabase
       .from('vendors')
       .select('store_name, description')
-      .eq('slug', slug)
+      .ilike('slug', normalizedSlug)
       .maybeSingle();
 
     if (vendor) {
@@ -36,18 +36,18 @@ export async function generateMetadata({ params }: StorefrontPageProps): Promise
 }
 
 export default async function StorefrontPage({ params }: StorefrontPageProps) {
-  const { slug } = params;
+  const normalizedSlug = (params.slug || '').toLowerCase().trim();
 
   let vendor: Vendor | null = null;
   let categories: Category[] = [];
   let products: Product[] = [];
 
-  if (isSupabaseConfigured) {
-    // 1. Fetch vendor profile by slug
+  if (isSupabaseConfigured && normalizedSlug) {
+    // 1. Fetch vendor profile by slug (case-insensitive)
     const { data: vendorData, error: vendorError } = await supabase
       .from('vendors')
       .select('*')
-      .eq('slug', slug)
+      .ilike('slug', normalizedSlug)
       .maybeSingle();
 
     if (!vendorError && vendorData) {

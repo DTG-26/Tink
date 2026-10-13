@@ -20,20 +20,34 @@ export default function HomePage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="Tink — Your Shop in a Link"
-              className="h-10 w-auto object-contain"
-            />
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Tink — Your Shop in a Link"
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+            <span className="hidden md:inline-flex text-[11px] font-medium text-slate-400 border-l border-slate-200 pl-2.5">
+              A product of Danmari Tech Group
+            </span>
+          </div>
 
           {/* Quick Nav Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            <span className="hidden xl:inline-flex text-[11px] font-medium text-slate-500 bg-slate-100/80 px-2.5 py-1 rounded-lg">
+              Tink is a product of Danmari Tech Group
+            </span>
+            <Link
+              href="/login"
+              className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
+            >
+              Log In
+            </Link>
             <Link
               href="/dashboard"
-              className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
+              className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors hidden sm:inline"
             >
               Dashboard
             </Link>
@@ -362,7 +376,7 @@ export default function HomePage() {
             <Link href="/dashboard" className="hover:text-blue-600">Dashboard</Link>
           </div>
 
-          <p>© {new Date().getFullYear()} Tink • Your Shop in a Link. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Tink is a product of Danmari Tech Group. All rights reserved.</p>
         </div>
       </footer>
     </div>

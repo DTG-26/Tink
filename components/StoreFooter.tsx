@@ -35,7 +35,7 @@ export const StoreFooter: React.FC<StoreFooterProps> = ({ vendor }) => {
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 ml-0.5" />
         </a>
         <p className="text-[11px] text-slate-400">
-          Your Shop in a Link • Create your free direct WhatsApp catalog.
+          Tink is a product of Danmari Tech Group • Create your free WhatsApp catalog.
         </p>
       </div>
     </footer>
