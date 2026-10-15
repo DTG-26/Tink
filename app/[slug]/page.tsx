@@ -1,7 +1,8 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
-import { Vendor, Category, Product } from '@/types/database';
+import { Vendor, Category, Product, checkIsActivePro } from '@/types/database';
+import { MONETIZATION_CONFIG } from '@/lib/constants';
 import { CartProvider } from '@/context/CartContext';
 import { StorefrontView } from '@/components/StorefrontView';
 import { Metadata } from 'next';
@@ -18,14 +19,17 @@ export async function generateMetadata({ params }: StorefrontPageProps): Promise
   if (isSupabaseConfigured && normalizedSlug) {
     const { data: vendor } = await supabase
       .from('vendors')
-      .select('store_name, description')
+      .select('store_name, description, bio')
       .ilike('slug', normalizedSlug)
       .maybeSingle();
 
     if (vendor) {
       return {
         title: `${vendor.store_name} — Order Direct on WhatsApp`,
-        description: vendor.description || `Browse the catalog and order directly on WhatsApp from ${vendor.store_name}.`
+        description:
+          vendor.bio ||
+          vendor.description ||
+          `Browse the catalog and order directly on WhatsApp from ${vendor.store_name}.`
       };
     }
   }
@@ -81,6 +85,12 @@ export default async function StorefrontPage({ params }: StorefrontPageProps) {
   // If store does not exist in the database, return 404
   if (!vendor) {
     notFound();
+  }
+
+  // Free Tier Rule: Max 5 products displayed on storefront
+  const isPro = checkIsActivePro(vendor);
+  if (!isPro) {
+    products = products.slice(0, MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS);
   }
 
   return (

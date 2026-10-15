@@ -116,3 +116,43 @@ export async function uploadProductImage(file: File, vendorId: string): Promise<
   // 3. Fallback to compressed high-efficiency data URL
   return dataUrl;
 }
+
+/**
+ * Uploads a store banner image (higher width resolution) to Supabase Storage.
+ * Falls back to optimized compressed base64 data URL.
+ */
+export async function uploadStoreBanner(file: File, vendorId: string): Promise<string> {
+  // Compress banner with 1600x800 resolution
+  const { blob, dataUrl } = await compressImageFile(file, 1600, 800, 0.88);
+
+  if (isSupabaseConfigured) {
+    try {
+      const cleanVendorId = vendorId || 'anonymous';
+      const fileExt = 'jpg';
+      const fileName = `banner-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `${cleanVendorId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('catalog-assets')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage
+          .from('catalog-assets')
+          .getPublicUrl(filePath);
+
+        if (publicUrlData?.publicUrl) {
+          return publicUrlData.publicUrl;
+        }
+      }
+    } catch {
+      // Fall through to compressed dataUrl fallback
+    }
+  }
+
+  return dataUrl;
+}
+

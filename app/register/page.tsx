@@ -162,11 +162,19 @@ export default function RegisterPage() {
       {/* 1. Header */}
       <header className="border-b border-slate-200/80 bg-white sticky top-0 z-20">
         <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Tink Logo" className="h-8 w-auto object-contain" />
-            <span className="font-extrabold text-base tracking-tight text-slate-900">Tink</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Tink Logo" className="h-8 w-auto object-contain" />
+              <span className="font-extrabold text-base tracking-tight text-slate-900">Tink</span>
+            </Link>
+            <Link
+              href="/"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors hidden sm:inline"
+            >
+              ← Back to Home
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-400 hidden sm:inline">Already registered?</span>
             <Link
@@ -455,7 +463,7 @@ export default function RegisterPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200/80 py-6 text-center text-xs text-slate-500 bg-white">
-        <p>© {new Date().getFullYear()} Tink is a product of Danmari Tech Group. Built for social sellers.</p>
+        <p>© {new Date().getFullYear()} Tink • Built for social sellers.</p>
       </footer>
     </div>
   );

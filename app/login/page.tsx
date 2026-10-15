@@ -61,14 +61,22 @@ export default function LoginPage() {
       {/* 1. TOP NAVBAR */}
       <header className="bg-white border-b border-slate-100 shadow-2xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="Tink"
-              className="h-9 w-auto object-contain"
-            />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Tink"
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
+            <Link
+              href="/"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors hidden sm:inline"
+            >
+              ← Back to Home
+            </Link>
+          </div>
           <Link
             href="/register"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-colors"
@@ -175,7 +183,7 @@ export default function LoginPage() {
 
       {/* 3. FOOTER */}
       <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-100">
-        Tink is a product of Danmari Tech Group • Instant WhatsApp Catalog for Social Sellers
+        © {new Date().getFullYear()} Tink. All rights reserved.
       </footer>
     </div>
   );

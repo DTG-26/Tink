@@ -3,7 +3,16 @@
 import React from 'react';
 import { Vendor, checkIsActivePro } from '../types/database';
 import { formatDisplayPhone } from '../lib/phone';
-import { MessageCircle, CheckCircle2, Store, Clock } from 'lucide-react';
+import {
+  MessageCircle,
+  CheckCircle2,
+  Store,
+  Clock,
+  Instagram,
+  Twitter,
+  Music2,
+  ExternalLink
+} from 'lucide-react';
 
 interface StoreHeaderProps {
   vendor: Vendor;
@@ -11,6 +20,7 @@ interface StoreHeaderProps {
 
 export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
   const isPro = checkIsActivePro(vendor);
+  const accentColor = isPro && vendor.accent_color ? vendor.accent_color : '#2563EB';
 
   const handleDirectChat = () => {
     const url = `https://wa.me/${vendor.whatsapp_number}?text=${encodeURIComponent(
@@ -19,10 +29,27 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
     window.location.href = url;
   };
 
+  const bioText = vendor.bio || vendor.description;
+  const hasSocials =
+    isPro &&
+    vendor.social_links &&
+    Boolean(
+      vendor.social_links.instagram ||
+      vendor.social_links.twitter ||
+      vendor.social_links.tiktok
+    );
+
   return (
     <header className="relative w-full bg-white border-b border-slate-200">
       {/* Banner */}
-      <div className="relative w-full h-36 md:h-48 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 overflow-hidden">
+      <div
+        className="relative w-full h-36 md:h-52 overflow-hidden"
+        style={{
+          background: vendor.banner_url
+            ? undefined
+            : `linear-gradient(135deg, ${accentColor} 0%, #1e1b4b 100%)`
+        }}
+      >
         {vendor.banner_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -33,7 +60,7 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
         ) : (
           <div className="w-full h-full opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
       </div>
 
       {/* Profile Details Container */}
@@ -50,22 +77,23 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Store className="w-10 h-10 text-blue-600" />
+                <Store className="w-10 h-10" style={{ color: accentColor }} />
               )}
             </div>
 
             <div className="pt-2">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
                   {vendor.store_name}
                 </h1>
                 {isPro && (
                   <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300 shadow-xs"
-                    title="Verified Store"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white shadow-2xs"
+                    style={{ backgroundColor: accentColor }}
+                    title="Verified Tink Pro Store"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                    Verified
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    Verified Store
                   </span>
                 )}
               </div>
@@ -79,8 +107,8 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
           <div className="flex items-center gap-2.5 pt-1 sm:pt-0">
             {/* Store Open/Closed Badge */}
             {vendor.is_open ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                 Open Now
               </span>
             ) : (
@@ -96,16 +124,81 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
               id="vendor-whatsapp-chat-btn"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#25D366] text-white hover:bg-[#20ba5a] active:scale-95 transition-all shadow-sm"
             >
-              <MessageCircle className="w-3.5 h-3.5" />
+              <MessageCircle className="w-3.5 h-3.5 fill-current" />
               Chat
             </button>
           </div>
         </div>
 
         {/* Bio / Description */}
-        {vendor.description && (
+        {bioText && (
           <div className="mt-3.5 text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-            {vendor.description}
+            {bioText}
+          </div>
+        )}
+
+        {/* Social Links (Pro Only) */}
+        {hasSocials && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            {vendor.social_links?.instagram && (
+              <a
+                href={
+                  vendor.social_links.instagram.startsWith('http')
+                    ? vendor.social_links.instagram
+                    : `https://instagram.com/${vendor.social_links.instagram.replace('@', '')}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold text-pink-700 bg-pink-50 hover:bg-pink-100 border border-pink-200/60 transition-colors"
+              >
+                <Instagram className="w-3.5 h-3.5" />
+                <span>
+                  {vendor.social_links.instagram.startsWith('@')
+                    ? vendor.social_links.instagram
+                    : `@${vendor.social_links.instagram}`}
+                </span>
+              </a>
+            )}
+
+            {vendor.social_links?.twitter && (
+              <a
+                href={
+                  vendor.social_links.twitter.startsWith('http')
+                    ? vendor.social_links.twitter
+                    : `https://x.com/${vendor.social_links.twitter.replace('@', '')}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+              >
+                <Twitter className="w-3.5 h-3.5" />
+                <span>
+                  {vendor.social_links.twitter.startsWith('@')
+                    ? vendor.social_links.twitter
+                    : `@${vendor.social_links.twitter}`}
+                </span>
+              </a>
+            )}
+
+            {vendor.social_links?.tiktok && (
+              <a
+                href={
+                  vendor.social_links.tiktok.startsWith('http')
+                    ? vendor.social_links.tiktok
+                    : `https://tiktok.com/@${vendor.social_links.tiktok.replace('@', '')}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
+              >
+                <Music2 className="w-3.5 h-3.5" />
+                <span>
+                  {vendor.social_links.tiktok.startsWith('@')
+                    ? vendor.social_links.tiktok
+                    : `@${vendor.social_links.tiktok}`}
+                </span>
+              </a>
+            )}
           </div>
         )}
 

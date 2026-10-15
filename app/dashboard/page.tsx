@@ -8,13 +8,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Vendor, Category, Product } from '@/types/database';
+import { Vendor, Category, Product, checkIsActivePro, checkIsProExpired } from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { MONETIZATION_CONFIG } from '@/lib/constants';
 import { signOutVendor } from '@/lib/auth';
 import { ProductList } from '@/components/dashboard/ProductList';
 import { ProductModal } from '@/components/dashboard/ProductModal';
 import { CategoryManager } from '@/components/dashboard/CategoryManager';
 import { StoreSettingsModal } from '@/components/dashboard/StoreSettingsModal';
+import { UpgradeModal } from '@/components/dashboard/UpgradeModal';
 import {
   Store,
   ExternalLink,
@@ -28,7 +30,10 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
-  LogOut
+  LogOut,
+  Clock,
+  Lock,
+  Pin
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -42,7 +47,40 @@ export default function DashboardPage() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const isPro = checkIsActivePro(vendor);
+  const isExpired = checkIsProExpired(vendor);
+
+  // Toggle Featured product status (Pro only, up to 3)
+  const handleToggleFeatured = async (productId: string, isFeatured: boolean) => {
+    if (!isPro) {
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
+    const updated = products.map((p) =>
+      p.id === productId ? { ...p, is_featured: isFeatured } : p
+    );
+    setProducts(updated);
+
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('products')
+        .update({ is_featured: isFeatured })
+        .eq('id', productId);
+    }
+  };
+
+  const handleAddNewProductClick = () => {
+    if (!isPro && products.length >= MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS) {
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+    setEditingProduct(null);
+    setIsProductModalOpen(true);
+  };
 
   // Load vendor from Supabase on mount
   useEffect(() => {
@@ -196,7 +234,12 @@ export default function DashboardPage() {
           .eq('id', productData.id);
       }
     } else {
-      // Create new
+      // Create new - check 5-product limit for Free tier
+      if (!isPro && products.length >= MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS) {
+        setIsUpgradeModalOpen(true);
+        return;
+      }
+
       if (isSupabaseConfigured) {
         const insertPayload = {
           vendor_id: vendor.id,
@@ -206,6 +249,7 @@ export default function DashboardPage() {
           price: productData.price || 0,
           image_url: productData.image_url || null,
           is_available: productData.is_available ?? true,
+          is_featured: isPro ? Boolean(productData.is_featured) : false,
           sort_order: products.length + 1
         };
 
@@ -233,6 +277,7 @@ export default function DashboardPage() {
         price: productData.price || 0,
         image_url: productData.image_url || null,
         is_available: productData.is_available ?? true,
+        is_featured: isPro ? Boolean(productData.is_featured) : false,
         sort_order: products.length + 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -376,7 +421,7 @@ export default function DashboardPage() {
         </main>
 
         <footer className="border-t border-slate-200/80 py-6 text-center text-xs text-slate-400 bg-white">
-          <p>© {new Date().getFullYear()} Tink is a product of Danmari Tech Group.</p>
+          <p>© {new Date().getFullYear()} Tink. All rights reserved.</p>
         </footer>
       </div>
     );
@@ -399,19 +444,42 @@ export default function DashboardPage() {
               </span>
             </Link>
 
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-              <Sparkles className="w-3 h-3 text-blue-600" />
-              100% Free • Unlimited
-            </span>
-            <span className="hidden md:inline-flex text-[11px] font-medium text-slate-400 border-l border-slate-200 pl-2.5">
-              A product of Danmari Tech Group
-            </span>
+            {isPro ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                <Sparkles className="w-3 h-3 text-blue-600" />
+                Tink Pro • Unlimited
+              </span>
+            ) : isExpired ? (
+              <button
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+                title="Your Pro subscription expired. Tap to renew."
+              >
+                <Clock className="w-3 h-3 text-amber-600" />
+                Pro Expired • Renew (₦3,000)
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+              >
+                <span>Free Tier ({products.length}/{MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS})</span>
+                <span className="text-blue-600 font-bold ml-1">Upgrade</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden lg:inline-flex text-[11px] font-medium text-slate-400 mr-1">
-              Tink is a product of Danmari Tech Group
-            </span>
+            {!isPro && (
+              <Link
+                href="/dashboard/upgrade"
+                className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-xs hover:from-blue-700 hover:to-indigo-700 transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Go Pro (₦3k)</span>
+              </Link>
+            )}
+
             <Link
               href={`/${vendor.slug}`}
               target="_blank"
@@ -421,13 +489,13 @@ export default function DashboardPage() {
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
 
-            <button
-              onClick={() => setIsSettingsModalOpen(true)}
+            <Link
+              href="/dashboard/settings"
               className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
               title="Store & Bank Settings"
             >
               <Settings className="w-4 h-4" />
-            </button>
+            </Link>
 
             <button
               onClick={handleLogout}
@@ -477,6 +545,11 @@ export default function DashboardPage() {
                   />
                   {vendor.is_open ? 'Open for Orders' : 'Store Paused'}
                 </span>
+                {isPro && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    <Sparkles className="w-3 h-3 text-blue-600" /> Pro Tier
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
@@ -515,14 +588,24 @@ export default function DashboardPage() {
             </button>
 
             <button
-              onClick={() => {
-                setEditingProduct(null);
-                setIsProductModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-600/20"
+              onClick={handleAddNewProductClick}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold transition-all shadow-sm ${
+                !isPro && products.length >= MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS
+                  ? 'bg-amber-600 text-white hover:bg-amber-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-600/20'
+              }`}
             >
-              <Plus className="w-4 h-4" />
-              <span>Add Product</span>
+              {!isPro && products.length >= MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Add Product (5/5 Limit)</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Add Product</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -534,7 +617,11 @@ export default function DashboardPage() {
             <p className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
               {products.length}
             </p>
-            <span className="text-[10px] text-blue-600 font-semibold">Unlimited Free</span>
+            <span className="text-[10px] text-blue-600 font-semibold">
+              {isPro
+                ? 'Unlimited Pro'
+                : `${products.length} / ${MONETIZATION_CONFIG.FREE_TIER_MAX_PRODUCTS} Free Limit`}
+            </span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -595,16 +682,16 @@ export default function DashboardPage() {
             <ProductList
               products={products}
               categories={categories}
-              onAddNew={() => {
-                setEditingProduct(null);
-                setIsProductModalOpen(true);
-              }}
+              isPro={isPro}
+              onAddNew={handleAddNewProductClick}
               onEditProduct={(p) => {
                 setEditingProduct(p);
                 setIsProductModalOpen(true);
               }}
               onToggleAvailability={handleToggleProductAvailability}
+              onToggleFeatured={handleToggleFeatured}
               onDeleteProduct={handleDeleteProduct}
+              onTriggerUpgrade={() => setIsUpgradeModalOpen(true)}
             />
           ) : (
             <CategoryManager
@@ -627,6 +714,11 @@ export default function DashboardPage() {
         initialProduct={editingProduct}
         categories={categories}
         vendorId={vendor.id}
+        isPro={isPro}
+        onTriggerUpgrade={() => {
+          setIsProductModalOpen(false);
+          setIsUpgradeModalOpen(true);
+        }}
       />
 
       {/* Store Settings Modal */}
@@ -635,6 +727,17 @@ export default function DashboardPage() {
         onClose={() => setIsSettingsModalOpen(false)}
         vendor={vendor}
         onSave={handleSaveStoreSettings}
+        onTriggerUpgrade={() => {
+          setIsSettingsModalOpen(false);
+          setIsUpgradeModalOpen(true);
+        }}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        vendor={vendor}
       />
     </div>
   );

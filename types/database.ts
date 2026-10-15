@@ -8,6 +8,12 @@
 // 1. CORE ENTITY INTERFACES
 // ==============================================================================
 
+export interface SocialLinks {
+  instagram?: string;
+  twitter?: string;
+  tiktok?: string;
+}
+
 export interface Vendor {
   id: string; // UUID primary key matching auth.users(id)
   store_name: string;
@@ -16,6 +22,12 @@ export interface Vendor {
   description: string | null;
   logo_url: string | null;
   banner_url: string | null;
+
+  // Store Customization (Pro Features)
+  accent_color?: string; // Hex color code (default #000000)
+  bio?: string | null; // Tagline / bio
+  custom_footer?: string | null; // Custom footer text
+  social_links?: SocialLinks; // JSON links for instagram, twitter, tiktok
 
   // Vendor Bank Details for WhatsApp order wire transfer
   bank_name: string | null;
@@ -64,6 +76,7 @@ export interface Product {
   price: number; // Stored as NUMERIC(10, 2) in Postgres, represented as number
   image_url: string | null;
   is_available: boolean; // 1-tap out-of-stock toggle
+  is_featured?: boolean; // Pinned / Best-seller toggle (Pro only, max 3)
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -88,7 +101,7 @@ export interface ProductWithCategory extends Product {
 
 /**
  * Evaluates vendor active Pro subscription status according to Blueprint Section 2:
- * isActivePro = (is_pro == true) && (pro_expires_at > NOW())
+ * isActivePro = (is_pro == true) && (pro_expires_at != null) && (new Date(pro_expires_at) > new Date())
  */
 export function checkIsActivePro(
   vendor: Pick<Vendor, 'is_pro' | 'pro_expires_at'> | null | undefined
@@ -98,7 +111,21 @@ export function checkIsActivePro(
   }
   const expiryDate = new Date(vendor.pro_expires_at);
   const now = new Date();
-  return expiryDate.getTime() > now.getTime();
+  return !isNaN(expiryDate.getTime()) && expiryDate.getTime() > now.getTime();
+}
+
+/**
+ * Checks if a vendor's Pro subscription was previously active but has now expired
+ */
+export function checkIsProExpired(
+  vendor: Pick<Vendor, 'is_pro' | 'pro_expires_at'> | null | undefined
+): boolean {
+  if (!vendor || !vendor.pro_expires_at) {
+    return false;
+  }
+  const expiryDate = new Date(vendor.pro_expires_at);
+  const now = new Date();
+  return !isNaN(expiryDate.getTime()) && expiryDate.getTime() <= now.getTime();
 }
 
 // ==============================================================================

@@ -13,7 +13,10 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  Camera
+  Camera,
+  Pin,
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 interface ProductModalProps {
@@ -23,6 +26,8 @@ interface ProductModalProps {
   categories: Category[];
   initialProduct?: Product | null;
   vendorId?: string;
+  isPro?: boolean;
+  onTriggerUpgrade?: () => void;
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({
@@ -31,7 +36,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onSave,
   categories,
   initialProduct,
-  vendorId = 'default-vendor'
+  vendorId = 'default-vendor',
+  isPro = false,
+  onTriggerUpgrade
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -39,6 +46,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [categoryId, setCategoryId] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
 
   // Photo upload state
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -53,6 +61,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setCategoryId(initialProduct.category_id || '');
       setImageUrl(initialProduct.image_url || '');
       setIsAvailable(initialProduct.is_available);
+      setIsFeatured(Boolean(initialProduct.is_featured));
     } else {
       setTitle('');
       setDescription('');
@@ -60,6 +69,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setCategoryId(categories[0]?.id || '');
       setImageUrl('');
       setIsAvailable(true);
+      setIsFeatured(false);
     }
     setPhotoError(null);
     setIsUploadingPhoto(false);
@@ -110,7 +120,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       price: parseFloat(price) || 0,
       category_id: categoryId || null,
       image_url: imageUrl.trim(),
-      is_available: isAvailable
+      is_available: isAvailable,
+      is_featured: isFeatured
     });
 
     onClose();
@@ -337,6 +348,49 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             >
               <span className="w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform" />
             </button>
+          </div>
+
+          {/* Featured / Pin to Top Toggle (Pro Feature) */}
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80">
+            <div className="pr-2">
+              <div className="flex items-center gap-1.5">
+                <Pin className="w-3.5 h-3.5 text-amber-600" />
+                <p className="text-xs font-bold text-amber-950">Pin to Top Featured</p>
+                {!isPro && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-900">
+                    <Lock className="w-2.5 h-2.5" /> Pro
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-amber-800/80 mt-0.5">
+                {isPro
+                  ? 'Display in the highlight best-seller carousel at the top of your store'
+                  : 'Upgrade to Tink Pro to pin up to 3 best-selling products'}
+              </p>
+            </div>
+
+            {isPro ? (
+              <button
+                type="button"
+                onClick={() => setIsFeatured(!isFeatured)}
+                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
+                  isFeatured ? 'bg-amber-600 justify-end' : 'bg-slate-300 justify-start'
+                }`}
+              >
+                <span className="w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onTriggerUpgrade) onTriggerUpgrade();
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-600 text-white text-[11px] font-bold hover:bg-amber-700 transition-colors shadow-2xs"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Upgrade</span>
+              </button>
+            )}
           </div>
         </form>
 

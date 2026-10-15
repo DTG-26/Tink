@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Vendor, Category, Product } from '../types/database';
+import { Vendor, Category, Product, checkIsActivePro } from '../types/database';
 import { StoreHeader } from './StoreHeader';
 import { CategoryPills } from './CategoryPills';
 import { ProductCard } from './ProductCard';
 import { StickyCartBar } from './StickyCartBar';
 import { CheckoutDrawer } from './CheckoutDrawer';
 import { StoreFooter } from './StoreFooter';
-import { ShoppingBag, Search } from 'lucide-react';
+import { ShoppingBag, Search, Pin, Sparkles, Flame } from 'lucide-react';
 
 interface StorefrontViewProps {
   vendor: Vendor;
@@ -23,6 +23,15 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const isPro = checkIsActivePro(vendor);
+  const accentColor = isPro && vendor.accent_color ? vendor.accent_color : '#2563EB';
+
+  // Pinned/Featured products for Pro vendors (max 3)
+  const featuredProducts = useMemo(() => {
+    if (!isPro) return [];
+    return products.filter((p) => p.is_featured).slice(0, 3);
+  }, [isPro, products]);
 
   // Count items per category
   const productCounts = useMemo(() => {
@@ -65,7 +74,13 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   }, [products, selectedCategoryId, searchQuery]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
+    <div
+      className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased selection:text-white"
+      style={{
+        // Define store accent color CSS variable
+        '--store-accent': accentColor
+      } as React.CSSProperties}
+    >
       {/* Store Header */}
       <StoreHeader vendor={vendor} />
 
@@ -76,6 +91,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         onSelectCategory={setSelectedCategoryId}
         productCounts={productCounts}
         totalProductsCount={products.length}
+        accentColor={accentColor}
       />
 
       {/* Main Catalog Section */}
@@ -87,8 +103,8 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Search ${vendor.store_name}'s menu...`}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 shadow-xs transition-all"
+            placeholder={`Search ${vendor.store_name}'s catalog...`}
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 shadow-xs transition-all"
           />
           {searchQuery && (
             <button
@@ -100,48 +116,103 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
           )}
         </div>
 
-        {/* Product Grid */}
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5 pb-24">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                categoryName={product.category_id ? categoryMap.get(product.category_id) : undefined}
-                isStoreOpen={vendor.is_open}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty Catalog State */
-          <div className="py-16 text-center flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-xs">
-              <ShoppingBag className="w-8 h-8 stroke-1 text-slate-400" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-800">
-              No products found
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs">
-              {searchQuery
-                ? `No items match "${searchQuery}". Try a different keyword.`
-                : 'There are no active products in this category at the moment.'}
-            </p>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-3 text-xs font-bold text-blue-600 hover:text-blue-700"
+        {/* Pro Feature: Distinct Highlight Row for Pinned / Featured Products */}
+        {featuredProducts.length > 0 && !searchQuery && selectedCategoryId === null && (
+          <section className="mb-8 p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-7 h-7 rounded-xl flex items-center justify-center text-white"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Pin className="w-3.5 h-3.5 fill-current" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                    Featured Best-Sellers
+                  </h2>
+                  <p className="text-[11px] text-slate-400">
+                    Hand-picked favorites from {vendor.store_name}
+                  </p>
+                </div>
+              </div>
+
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white shadow-2xs"
+                style={{ backgroundColor: accentColor }}
               >
-                Reset search
-              </button>
-            )}
-          </div>
+                <Sparkles className="w-3 h-3" /> Popular Picks
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              {featuredProducts.map((product) => (
+                <ProductCard
+                  key={`featured-${product.id}`}
+                  product={product}
+                  categoryName={
+                    product.category_id ? categoryMap.get(product.category_id) : undefined
+                  }
+                  isStoreOpen={vendor.is_open}
+                  accentColor={accentColor}
+                />
+              ))}
+            </div>
+          </section>
         )}
+
+        {/* Product Catalog Grid */}
+        <div>
+          {featuredProducts.length > 0 && !searchQuery && selectedCategoryId === null && (
+            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
+              All Items ({filteredProducts.length})
+            </h3>
+          )}
+
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5 pb-24">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  categoryName={
+                    product.category_id ? categoryMap.get(product.category_id) : undefined
+                  }
+                  isStoreOpen={vendor.is_open}
+                  accentColor={accentColor}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Empty Catalog State */
+            <div className="py-16 text-center flex flex-col items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-300 mb-3 shadow-xs">
+                <ShoppingBag className="w-8 h-8 stroke-1 text-slate-400" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">No products found</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                {searchQuery
+                  ? `No items match "${searchQuery}". Try a different keyword.`
+                  : 'There are no active products in this category at the moment.'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ color: accentColor }}
+                  className="mt-3 text-xs font-bold hover:underline"
+                >
+                  Reset search
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* Floating Bottom Cart Bar (Appears when items are in cart) */}
-      <StickyCartBar />
+      {/* Floating Bottom Cart Bar */}
+      <StickyCartBar accentColor={accentColor} />
 
-      {/* Slide-Up Checkout Drawer (Phase 3 WhatsApp Engine) */}
+      {/* Slide-Up Checkout Drawer */}
       <CheckoutDrawer vendor={vendor} />
 
       {/* Store Footer */}

@@ -4,18 +4,20 @@ import React from 'react';
 import { Product } from '../types/database';
 import { formatNaira } from '../lib/whatsapp';
 import { useCart } from '../context/CartContext';
-import { Plus, Minus, PackageX, ShoppingBag } from 'lucide-react';
+import { Plus, Minus, PackageX, ShoppingBag, Pin } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   categoryName?: string;
   isStoreOpen: boolean;
+  accentColor?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   categoryName,
-  isStoreOpen
+  isStoreOpen,
+  accentColor
 }) => {
   const { addItem, updateQuantity, getItemQuantity } = useCart();
   const quantity = getItemQuantity(product.id);
@@ -65,6 +67,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
+          {/* Featured Pin Badge */}
+          {product.is_featured && (
+            <div
+              className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-sm"
+              style={{ backgroundColor: accentColor || '#d97706' }}
+            >
+              <Pin className="w-2.5 h-2.5 fill-current" />
+              Featured
+            </div>
+          )}
+
           {/* Out-of-Stock Badge */}
           {!product.is_available && (
             <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-white/95 border border-rose-200 px-2 py-0.5 text-[11px] font-bold text-rose-700 shadow-sm backdrop-blur-sm">
@@ -77,7 +90,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Product Details */}
         <div className="p-3.5 sm:p-4">
           {categoryName && (
-            <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+            <p
+              className="text-[11px] font-bold uppercase tracking-wider text-blue-600"
+              style={accentColor ? { color: accentColor } : undefined}
+            >
               {categoryName}
             </p>
           )}
@@ -115,23 +131,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           ) : quantity > 0 ? (
             /* Active Stepper Control */
-            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-xl p-1 shadow-sm">
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm">
               <button
                 type="button"
                 onClick={handleDecrement}
                 aria-label={`Decrease quantity of ${product.title}`}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-blue-700 hover:bg-blue-100 active:scale-95 transition-all shadow-xs"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-slate-700 hover:bg-slate-100 active:scale-95 transition-all shadow-xs"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="w-5 text-center text-xs font-bold text-blue-950">
+              <span className="w-5 text-center text-xs font-bold text-slate-900">
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={handleIncrement}
                 aria-label={`Increase quantity of ${product.title}`}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-xs"
+                style={accentColor ? { backgroundColor: accentColor } : undefined}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:opacity-90 active:scale-95 transition-all shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -142,7 +159,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               type="button"
               onClick={handleAdd}
               id={`add-to-cart-${product.id}`}
-              className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-600/20"
+              style={accentColor ? { backgroundColor: accentColor } : undefined}
+              className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:opacity-90 active:scale-95 transition-all shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Add
