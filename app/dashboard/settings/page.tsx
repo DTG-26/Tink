@@ -273,7 +273,13 @@ export default function DashboardSettingsPage() {
     }
 
     if (isSupabaseConfigured) {
-      await supabase.from('vendors').update(vendorPayload).eq('id', vendor.id);
+      const { error: vendorError } = await supabase.from('vendors').update(vendorPayload).eq('id', vendor.id);
+      if (vendorError) {
+        console.error('Failed to update vendor settings:', vendorError);
+        alert(`Could not save customization to database: ${vendorError.message}\n\nPlease run the Tink Pro SQL migration in your Supabase SQL editor.`);
+        setIsSaving(false);
+        return;
+      }
 
       // Also update is_featured for products if Pro
       if (isPro) {

@@ -354,7 +354,11 @@ export default function DashboardPage() {
     }
 
     if (isSupabaseConfigured) {
-      await supabase.from('vendors').update(updatedFields).eq('id', vendor.id);
+      const { error } = await supabase.from('vendors').update(updatedFields).eq('id', vendor.id);
+      if (error) {
+        console.error('Failed to update vendor in Supabase:', error);
+        alert(`Could not save customization to database: ${error.message}\n\nPlease ensure you have run the Tink Pro SQL migration in your Supabase SQL editor.`);
+      }
     }
   };
 
