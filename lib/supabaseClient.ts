@@ -21,8 +21,15 @@ export const supabase = createClient(
   isSupabaseConfigured ? supabaseAnonKey : 'dummy-anon-key',
   {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true
+      persistSession: typeof window !== 'undefined',
+      autoRefreshToken: typeof window !== 'undefined'
+    },
+    global: {
+      fetch: (url, options = {}) =>
+        fetch(url, {
+          ...options,
+          cache: 'no-store'
+        })
     }
   }
 );

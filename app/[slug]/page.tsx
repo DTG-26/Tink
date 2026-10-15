@@ -7,6 +7,9 @@ import { CartProvider } from '@/context/CartContext';
 import { StorefrontView } from '@/components/StorefrontView';
 import { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface StorefrontPageProps {
   params: {
     slug: string;
