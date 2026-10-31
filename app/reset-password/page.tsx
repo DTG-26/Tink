@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { updateVendorPassword } from '@/lib/auth';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import {
   Lock,
   ArrowRight,
@@ -21,6 +22,22 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Automatically exchange PKCE code or OTP recovery token_hash on mount if present in URL
+  useEffect(() => {
+    if (!isSupabaseConfigured || typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const tokenHash = params.get('token_hash');
+    const type = params.get('type');
+
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).catch(() => {});
+    } else if (tokenHash && type === 'recovery') {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' }).catch(() => {});
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

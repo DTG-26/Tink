@@ -261,10 +261,51 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
         status: 'new'
       };
 
+      // Update local vendor cache if vendor is testing on their own browser
+      try {
+        const localVendorRaw = localStorage.getItem('tink_vendor');
+        if (localVendorRaw) {
+          const localVendor = JSON.parse(localVendorRaw);
+          if (localVendor && localVendor.id === vendor.id) {
+            const nextClicks = (localVendor.social_links?._whatsapp_clicks || 0) + 1;
+            const prevOrders = Array.isArray(localVendor.social_links?._recent_orders)
+              ? localVendor.social_links._recent_orders
+              : [];
+            localVendor.social_links = {
+              ...(localVendor.social_links || {}),
+              _whatsapp_clicks: nextClicks,
+              _recent_orders: [orderEntry, ...prevOrders].slice(0, 50)
+            };
+            localStorage.setItem('tink_vendor', JSON.stringify(localVendor));
+          }
+        }
+      } catch {
+        // Ignore localStorage error
+      }
+
+      // Extract any active Supabase auth token from localStorage synchronously
+      let accessToken: string | undefined;
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const rawSession = localStorage.getItem(key);
+            if (rawSession) {
+              const parsed = JSON.parse(rawSession);
+              accessToken = parsed?.access_token;
+              break;
+            }
+          }
+        }
+      } catch {
+        // Ignore
+      }
+
       const payload = JSON.stringify({
         vendorId: vendor.id,
         type: 'whatsapp_order',
-        orderEntry
+        orderEntry,
+        accessToken
       });
 
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {

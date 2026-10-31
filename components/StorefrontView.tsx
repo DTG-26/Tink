@@ -17,6 +17,7 @@ import { ProductCard } from './ProductCard';
 import { StickyCartBar } from './StickyCartBar';
 import { CheckoutDrawer } from './CheckoutDrawer';
 import { StoreFooter } from './StoreFooter';
+import { supabase } from '../lib/supabaseClient';
 import { ShoppingBag, Search, Pin, Sparkles, Megaphone } from 'lucide-react';
 
 interface StorefrontViewProps {
@@ -45,11 +46,32 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
     if (sessionStorage.getItem(sessionKey)) return;
     sessionStorage.setItem(sessionKey, '1');
 
-    fetch('/api/store-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vendorId: vendor.id, type: 'view' })
-    }).catch(() => {});
+    // Update local vendor cache if vendor is previewing their own store
+    try {
+      const localVendorRaw = localStorage.getItem('tink_vendor');
+      if (localVendorRaw) {
+        const localVendor = JSON.parse(localVendorRaw);
+        if (localVendor && localVendor.id === vendor.id) {
+          const nextViews = (localVendor.social_links?._store_views || 0) + 1;
+          localVendor.social_links = {
+            ...(localVendor.social_links || {}),
+            _store_views: nextViews
+          };
+          localStorage.setItem('tink_vendor', JSON.stringify(localVendor));
+        }
+      }
+    } catch {
+      // Ignore storage error
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      const accessToken = data.session?.access_token;
+      fetch('/api/store-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId: vendor.id, type: 'view', accessToken })
+      }).catch(() => {});
+    });
   }, [vendor.id]);
 
   // Pinned/Featured products for Pro vendors (max 3)

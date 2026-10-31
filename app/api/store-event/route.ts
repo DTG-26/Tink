@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { OrderLogEntry, SocialLinks } from '@/types/database';
 
@@ -9,17 +10,49 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { vendorId, type, orderEntry } = body as {
+    const { vendorId, type, orderEntry, accessToken } = body as {
       vendorId?: string;
       type?: 'view' | 'whatsapp_order';
       orderEntry?: OrderLogEntry;
+      accessToken?: string;
     };
 
     if (!vendorId || !type) {
       return NextResponse.json({ error: 'Missing vendorId or type' }, { status: 400 });
     }
 
-    const { data: vendor } = await supabase
+    // 1. Try SECURITY DEFINER RPC function first (if migration was applied)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('record_store_event', {
+      p_vendor_id: vendorId,
+      p_event_type: type,
+      p_order_entry: orderEntry || null
+    });
+
+    if (!rpcError && rpcData) {
+      return NextResponse.json(rpcData);
+    }
+
+    // 2. Choose best available Supabase client (Service Role -> Caller Access Token -> Anon)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+    const dbClient = serviceRoleKey
+      ? createClient(supabaseUrl, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        })
+      : accessToken
+      ? createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          }
+        })
+      : supabase;
+
+    const { data: vendor } = await dbClient
       .from('vendors')
       .select('social_links')
       .eq('id', vendorId)
@@ -29,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     if (type === 'view') {
       const nextViews = (currentLinks._store_views || 0) + 1;
-      await supabase
+      await dbClient
         .from('vendors')
         .update({
           social_links: {
@@ -51,7 +84,7 @@ export async function POST(req: NextRequest) {
         ? [orderEntry, ...existingOrders].slice(0, 50)
         : existingOrders;
 
-      await supabase
+      await dbClient
         .from('vendors')
         .update({
           social_links: {
@@ -71,4 +104,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 200 });
   }
 }
-

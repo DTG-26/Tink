@@ -406,17 +406,8 @@ export default function DashboardSettingsPage() {
         return;
       }
 
-      // Also attempt updating dedicated delivery_zones & business_hours columns if migration was run
+      // Update is_featured for products
       if (isPro) {
-        await supabase
-          .from('vendors')
-          .update({
-            delivery_zones: finalZones,
-            business_hours: businessHours
-          })
-          .eq('id', vendor.id);
-
-        // Update is_featured for products
         for (const prod of products) {
           const shouldBeFeatured = featuredProductIds.includes(prod.id);
           if (prod.is_featured !== shouldBeFeatured) {

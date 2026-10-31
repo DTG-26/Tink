@@ -135,6 +135,65 @@ export default function DashboardPage() {
         }
 
         if (v) {
+          // Merge any local analytics/order logs if higher/newer than server copy
+          if (typeof window !== 'undefined') {
+            try {
+              const cachedRaw = localStorage.getItem('tink_vendor');
+              if (cachedRaw) {
+                const cached = JSON.parse(cachedRaw) as Vendor;
+                if (cached && cached.id === v.id && cached.social_links) {
+                  const serverLinks = v.social_links || {};
+                  const localLinks = cached.social_links;
+                  const mergedViews = Math.max(
+                    serverLinks._store_views || 0,
+                    localLinks._store_views || 0
+                  );
+                  const mergedClicks = Math.max(
+                    serverLinks._whatsapp_clicks || 0,
+                    localLinks._whatsapp_clicks || 0
+                  );
+                  const serverOrders = Array.isArray(serverLinks._recent_orders)
+                    ? serverLinks._recent_orders
+                    : [];
+                  const localOrders = Array.isArray(localLinks._recent_orders)
+                    ? localLinks._recent_orders
+                    : [];
+                  const seenIds = new Set<string>();
+                  const mergedOrders = [...localOrders, ...serverOrders]
+                    .filter((o) => {
+                      if (!o || !o.id || seenIds.has(o.id)) return false;
+                      seenIds.add(o.id);
+                      return true;
+                    })
+                    .slice(0, 50);
+
+                  if (
+                    mergedViews > (serverLinks._store_views || 0) ||
+                    mergedClicks > (serverLinks._whatsapp_clicks || 0) ||
+                    mergedOrders.length > serverOrders.length
+                  ) {
+                    const nextLinks = {
+                      ...serverLinks,
+                      _store_views: mergedViews,
+                      _whatsapp_clicks: mergedClicks,
+                      _recent_orders: mergedOrders
+                    };
+                    v = { ...v, social_links: nextLinks };
+                    if (currentUser && currentUser.id === v.id) {
+                      supabase
+                        .from('vendors')
+                        .update({ social_links: nextLinks })
+                        .eq('id', v.id)
+                        .then(() => {});
+                    }
+                  }
+                }
+              }
+            } catch {
+              // Ignore merge error
+            }
+          }
+
           setVendor(v);
           if (typeof window !== 'undefined') {
             localStorage.setItem('tink_vendor_id', v.id);
@@ -291,12 +350,6 @@ export default function DashboardPage() {
           .eq('id', productData.id);
 
         if (isPro) {
-          if (variants !== undefined) {
-            await supabase
-              .from('products')
-              .update({ variants })
-              .eq('id', productData.id);
-          }
           await persistProductMetaFallback(productData.id, variants, compare_at_price);
         }
       }
@@ -335,12 +388,6 @@ export default function DashboardPage() {
           setProducts([...products, createdProduct]);
 
           if (isPro) {
-            if (productData.variants && productData.variants.length > 0) {
-              await supabase
-                .from('products')
-                .update({ variants: productData.variants })
-                .eq('id', createdProduct.id);
-            }
             await persistProductMetaFallback(
               createdProduct.id,
               productData.variants,
