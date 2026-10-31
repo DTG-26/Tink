@@ -12,7 +12,14 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Vendor, Category, Product, checkIsActivePro, checkIsProExpired } from '@/types/database';
+import {
+  Vendor,
+  Category,
+  Product,
+  checkIsActivePro,
+  checkIsProExpired,
+  getProductVariants
+} from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { MONETIZATION_CONFIG } from '@/lib/constants';
 import { ProductList } from '@/components/dashboard/ProductList';
@@ -168,6 +175,33 @@ export default function DashboardProductsPage() {
   const handleSaveProduct = async (productData: Partial<Product>) => {
     if (!vendor) return;
 
+    const persistVariantsFallback = async (productId: string, variantsList: Product['variants']) => {
+      if (!isPro) return;
+      const existingVariantsMap = vendor.social_links?._product_variants || {};
+      const nextVariantsMap = {
+        ...existingVariantsMap,
+        [productId]: variantsList || []
+      };
+      const nextSocialLinks = {
+        ...(vendor.social_links || {}),
+        _product_variants: nextVariantsMap
+      };
+      const updatedVendor: Vendor = {
+        ...vendor,
+        social_links: nextSocialLinks
+      };
+      setVendor(updatedVendor);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tink_vendor', JSON.stringify(updatedVendor));
+      }
+      if (isSupabaseConfigured) {
+        await supabase
+          .from('vendors')
+          .update({ social_links: nextSocialLinks })
+          .eq('id', vendor.id);
+      }
+    };
+
     if (productData.id) {
       // Edit existing product
       const updated = products.map((p) =>
@@ -175,11 +209,21 @@ export default function DashboardProductsPage() {
       );
       setProducts(updated);
 
+      const { variants, ...coreProductData } = productData;
+
       if (isSupabaseConfigured) {
         await supabase
           .from('products')
-          .update(productData)
+          .update(coreProductData)
           .eq('id', productData.id);
+
+        if (isPro && variants !== undefined) {
+          await supabase
+            .from('products')
+            .update({ variants })
+            .eq('id', productData.id);
+          await persistVariantsFallback(productData.id, variants);
+        }
       }
     } else {
       // Check 5-product limit before adding 6th product
@@ -208,7 +252,19 @@ export default function DashboardProductsPage() {
           .single();
 
         if (data) {
-          setProducts([...products, data as Product]);
+          const createdProduct: Product = {
+            ...(data as Product),
+            variants: isPro ? productData.variants || [] : []
+          };
+          setProducts([...products, createdProduct]);
+
+          if (isPro && productData.variants && productData.variants.length > 0) {
+            await supabase
+              .from('products')
+              .update({ variants: productData.variants })
+              .eq('id', createdProduct.id);
+            await persistVariantsFallback(createdProduct.id, productData.variants);
+          }
           return;
         } else if (error) {
           console.error('Product creation error:', error);
@@ -225,6 +281,7 @@ export default function DashboardProductsPage() {
         image_url: productData.image_url || null,
         is_available: productData.is_available ?? true,
         is_featured: isPro ? Boolean(productData.is_featured) : false,
+        variants: isPro ? productData.variants || [] : [],
         sort_order: products.length + 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -360,6 +417,7 @@ export default function DashboardProductsPage() {
         <ProductList
           products={products}
           categories={categories}
+          vendor={vendor}
           isPro={isPro}
           onToggleAvailability={handleToggleProductAvailability}
           onToggleFeatured={handleToggleFeatured}
@@ -382,6 +440,7 @@ export default function DashboardProductsPage() {
         }}
         onSave={handleSaveProduct}
         initialProduct={editingProduct}
+        initialVariants={editingProduct ? getProductVariants(editingProduct, vendor) : []}
         categories={categories}
         vendorId={vendor.id}
         isPro={isPro}

@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Product, Category } from '../../types/database';
+import { Product, Category, Vendor, getProductVariants } from '../../types/database';
 import { formatNaira } from '../../lib/whatsapp';
 import { MONETIZATION_CONFIG } from '../../lib/constants';
 import {
@@ -20,12 +20,14 @@ import {
   Pin,
   Sparkles,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Layers
 } from 'lucide-react';
 
 interface ProductListProps {
   products: Product[];
   categories: Category[];
+  vendor?: Vendor | null;
   isPro?: boolean;
   onToggleAvailability: (productId: string, newStatus: boolean) => Promise<void>;
   onToggleFeatured?: (productId: string, isFeatured: boolean) => Promise<void>;
@@ -38,6 +40,7 @@ interface ProductListProps {
 export const ProductList: React.FC<ProductListProps> = ({
   products,
   categories,
+  vendor,
   isPro = false,
   onToggleAvailability,
   onToggleFeatured,
@@ -280,6 +283,11 @@ export const ProductList: React.FC<ProductListProps> = ({
                         {product.is_featured && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
                             <Pin className="w-2.5 h-2.5 fill-current" /> Featured
+                          </span>
+                        )}
+                        {isPro && getProductVariants(product, vendor).length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            <Layers className="w-2.5 h-2.5" /> {getProductVariants(product, vendor).length} Options
                           </span>
                         )}
                       </div>

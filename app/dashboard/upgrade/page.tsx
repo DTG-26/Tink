@@ -250,6 +250,18 @@ export default function UpgradePage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5 font-bold" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Delivery Zones, Product Variants, Auto Schedule & QR Poster</h4>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Let buyers pick delivery areas with automatic fee calculation, offer product sizes/options, set automatic WAT business hours, and download a branded QR code poster.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

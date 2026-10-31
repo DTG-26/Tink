@@ -137,6 +137,16 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                   <span className="text-slate-600">Feature priority deals and high-converting items at the top of your store.</span>
                 </div>
               </li>
+
+              <li className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Flame className="w-3 h-3 font-bold" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900">Pro Power Tools:</span>{' '}
+                  <span className="text-slate-600">Delivery zones & fees at checkout, product variants (sizes/options), auto business hours & downloadable store QR poster.</span>
+                </div>
+              </li>
             </ul>
           </div>
 

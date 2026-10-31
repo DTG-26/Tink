@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Product } from '../types/database';
+import React, { useState } from 'react';
+import { Product, ProductVariant } from '../types/database';
 import { formatNaira } from '../lib/whatsapp';
 import { useCart } from '../context/CartContext';
 import { Plus, Minus, PackageX, ShoppingBag, Pin } from 'lucide-react';
@@ -11,37 +11,56 @@ interface ProductCardProps {
   categoryName?: string;
   isStoreOpen: boolean;
   accentColor?: string;
+  variants?: ProductVariant[];
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   categoryName,
   isStoreOpen,
-  accentColor
+  accentColor,
+  variants = []
 }) => {
   const { addItem, updateQuantity, getItemQuantity } = useCart();
-  const quantity = getItemQuantity(product.id);
 
+  const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(
+    hasVariants ? variants[0].id : ''
+  );
+
+  const selectedVariant = hasVariants
+    ? variants.find((v) => v.id === selectedVariantId) || variants[0]
+    : null;
+
+  const activePrice = selectedVariant ? selectedVariant.price : product.price;
+  const cartLineId = selectedVariant ? `${product.id}__${selectedVariant.id}` : product.id;
+
+  const quantity = getItemQuantity(cartLineId);
   const isAvailable = product.is_available && isStoreOpen;
 
   const handleAdd = () => {
     if (!isAvailable) return;
     addItem({
-      id: product.id,
-      title: product.title,
-      price: product.price,
+      id: cartLineId,
+      product_id: product.id,
+      title: selectedVariant
+        ? `${product.title} (${selectedVariant.name})`
+        : product.title,
+      price: activePrice,
       image_url: product.image_url,
-      category_name: categoryName
+      category_name: categoryName,
+      variant_id: selectedVariant?.id,
+      variant_name: selectedVariant?.name
     });
   };
 
   const handleIncrement = () => {
     if (!isAvailable) return;
-    updateQuantity(product.id, quantity + 1);
+    updateQuantity(cartLineId, quantity + 1);
   };
 
   const handleDecrement = () => {
-    updateQuantity(product.id, quantity - 1);
+    updateQuantity(cartLineId, quantity - 1);
   };
 
   return (
@@ -107,15 +126,66 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {product.description}
             </p>
           )}
+
+          {/* Product Variants Selector (Tink Pro) */}
+          {hasVariants && (
+            <div className="mt-2.5 pt-2 border-t border-slate-100">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Select Option
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {variants.map((variant) => {
+                  const isSelected = selectedVariant?.id === variant.id;
+                  const varQty = getItemQuantity(`${product.id}__${variant.id}`);
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      style={
+                        isSelected
+                          ? {
+                              backgroundColor: accentColor || '#2563EB',
+                              borderColor: accentColor || '#2563EB',
+                              color: '#ffffff'
+                            }
+                          : undefined
+                      }
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{variant.name}</span>
+                      {varQty > 0 && (
+                        <span
+                          className={`px-1 rounded text-[9px] font-extrabold ${
+                            isSelected
+                              ? 'bg-white/25 text-white'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}
+                        >
+                          {varQty}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Footer: Price & Cart Actions */}
       <div className="p-3.5 sm:p-4 pt-0 sm:pt-0 flex items-center justify-between gap-2 mt-auto">
         <div className="flex flex-col">
-          <span className="text-[11px] text-slate-400 font-medium">Price</span>
+          <span className="text-[11px] text-slate-400 font-medium">
+            {selectedVariant ? selectedVariant.name : 'Price'}
+          </span>
           <span className="text-sm sm:text-base font-extrabold text-slate-950">
-            ₦{formatNaira(product.price)}
+            ₦{formatNaira(activePrice)}
           </span>
         </div>
 

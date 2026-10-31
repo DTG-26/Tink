@@ -1,14 +1,21 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Vendor, Category, Product, checkIsActivePro } from '../types/database';
+import {
+  Vendor,
+  Category,
+  Product,
+  checkIsActivePro,
+  checkStoreOpenStatus,
+  getProductVariants
+} from '../types/database';
 import { StoreHeader } from './StoreHeader';
 import { CategoryPills } from './CategoryPills';
 import { ProductCard } from './ProductCard';
 import { StickyCartBar } from './StickyCartBar';
 import { CheckoutDrawer } from './CheckoutDrawer';
 import { StoreFooter } from './StoreFooter';
-import { ShoppingBag, Search, Pin, Sparkles, Flame } from 'lucide-react';
+import { ShoppingBag, Search, Pin, Sparkles } from 'lucide-react';
 
 interface StorefrontViewProps {
   vendor: Vendor;
@@ -26,6 +33,7 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
 
   const isPro = checkIsActivePro(vendor);
   const accentColor = isPro && vendor.accent_color ? vendor.accent_color : '#2563EB';
+  const openStatus = checkStoreOpenStatus(vendor);
 
   // Pinned/Featured products for Pro vendors (max 3)
   const featuredProducts = useMemo(() => {
@@ -153,8 +161,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   categoryName={
                     product.category_id ? categoryMap.get(product.category_id) : undefined
                   }
-                  isStoreOpen={vendor.is_open}
+                  isStoreOpen={openStatus.isOpen}
                   accentColor={accentColor}
+                  variants={isPro ? getProductVariants(product, vendor) : []}
                 />
               ))}
             </div>
@@ -178,8 +187,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   categoryName={
                     product.category_id ? categoryMap.get(product.category_id) : undefined
                   }
-                  isStoreOpen={vendor.is_open}
+                  isStoreOpen={openStatus.isOpen}
                   accentColor={accentColor}
+                  variants={isPro ? getProductVariants(product, vendor) : []}
                 />
               ))}
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Vendor, checkIsActivePro } from '../types/database';
+import { Vendor, checkIsActivePro, checkStoreOpenStatus } from '../types/database';
 import { formatDisplayPhone } from '../lib/phone';
 import {
   MessageCircle,
@@ -10,8 +10,7 @@ import {
   Clock,
   Instagram,
   Twitter,
-  Music2,
-  ExternalLink
+  Music2
 } from 'lucide-react';
 
 interface StoreHeaderProps {
@@ -21,6 +20,7 @@ interface StoreHeaderProps {
 export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
   const isPro = checkIsActivePro(vendor);
   const accentColor = isPro && vendor.accent_color ? vendor.accent_color : '#2563EB';
+  const openStatus = checkStoreOpenStatus(vendor);
 
   const handleDirectChat = () => {
     const url = `https://wa.me/${vendor.whatsapp_number}?text=${encodeURIComponent(
@@ -104,17 +104,22 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
           </div>
 
           {/* Quick Actions & Status */}
-          <div className="flex items-center gap-2.5 pt-1 sm:pt-0">
+          <div className="flex items-center gap-2.5 pt-1 sm:pt-0 flex-wrap">
             {/* Store Open/Closed Badge */}
-            {vendor.is_open ? (
+            {openStatus.isOpen ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                Open Now
+                <span>{openStatus.statusText}</span>
+                {openStatus.scheduleBadge && (
+                  <span className="hidden sm:inline text-emerald-600/80 font-medium">
+                    • {openStatus.scheduleBadge}
+                  </span>
+                )}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                 <Clock className="w-3 h-3 text-amber-600" />
-                Closed for Orders
+                <span>{openStatus.statusText}</span>
               </span>
             )}
 
@@ -203,11 +208,13 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
         )}
 
         {/* Closed Store Alert Banner */}
-        {!vendor.is_open && (
+        {!openStatus.isOpen && (
           <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
             <Clock className="w-4 h-4 flex-shrink-0 text-amber-600" />
             <span>
-              This store is currently paused. You can still browse the menu and explore items.
+              {openStatus.reason === 'outside_hours'
+                ? `We are currently outside our scheduled business hours (${openStatus.scheduleBadge || 'Closed'}). You can still browse the catalog.`
+                : 'This store is currently paused. You can still browse the menu and explore items.'}
             </span>
           </div>
         )}

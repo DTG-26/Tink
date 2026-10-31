@@ -41,7 +41,7 @@ export function formatNaira(amount: number): string {
  * _Please reply to confirm availability and acknowledge payment!_
  */
 export function compileOrderMessage(order: DirectCartOrder): string {
-  const { storeName, customer, items, totalAmount, vendorBank } = order;
+  const { storeName, customer, items, subtotalAmount, deliveryZone, totalAmount, vendorBank } = order;
 
   // Header & Customer details
   const header = `🛍️ *NEW ORDER - ${storeName}*\n------------------------------`;
@@ -51,6 +51,11 @@ export function compileOrderMessage(order: DirectCartOrder): string {
     `📍 *Delivery Address:* ${customer.address}`
   ];
 
+  if (deliveryZone) {
+    const feeText = deliveryZone.fee > 0 ? `₦${formatNaira(deliveryZone.fee)}` : 'Free';
+    customerInfo.push(`🚚 *Delivery Zone:* ${deliveryZone.name} (${feeText})`);
+  }
+
   if (customer.note && customer.note.trim()) {
     customerInfo.push(`📝 *Note:* ${customer.note.trim()}`);
   }
@@ -58,13 +63,28 @@ export function compileOrderMessage(order: DirectCartOrder): string {
   // Order items list
   const itemLines = items.map((item) => {
     const itemTotal = item.price * item.quantity;
-    return `• ${item.quantity}x ${item.title} — ₦${formatNaira(itemTotal)}`;
+    const displayTitle =
+      item.variant_name && !item.title.includes(`(${item.variant_name})`)
+        ? `${item.title} (${item.variant_name})`
+        : item.title;
+    return `• ${item.quantity}x ${displayTitle} — ₦${formatNaira(itemTotal)}`;
   });
 
   const orderDetails = `🛒 *ORDER DETAILS:*\n${itemLines.join('\n')}`;
 
-  // Total
-  const totalSection = `------------------------------\n💰 *TOTAL AMOUNT:* ₦${formatNaira(totalAmount)}`;
+  // Totals breakdown
+  const totalLines = ['------------------------------'];
+  if (deliveryZone) {
+    const sub = subtotalAmount ?? items.reduce((s, i) => s + i.price * i.quantity, 0);
+    totalLines.push(`📦 *Subtotal:* ₦${formatNaira(sub)}`);
+    totalLines.push(
+      `🚚 *Delivery (${deliveryZone.name}):* ${
+        deliveryZone.fee > 0 ? `₦${formatNaira(deliveryZone.fee)}` : 'FREE'
+      }`
+    );
+  }
+  totalLines.push(`💰 *TOTAL AMOUNT:* ₦${formatNaira(totalAmount)}`);
+  const totalSection = totalLines.join('\n');
 
   // Payment instructions
   const bankName = vendorBank.bankName || 'Direct Transfer';

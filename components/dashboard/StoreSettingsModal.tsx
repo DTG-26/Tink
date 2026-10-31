@@ -130,6 +130,7 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
         payload.bio = bio.trim() || null;
         payload.custom_footer = customFooter.trim() || null;
         payload.social_links = {
+          ...(vendor.social_links || {}),
           instagram: instagram.trim() || '',
           twitter: twitter.trim() || '',
           tiktok: tiktok.trim() || ''
