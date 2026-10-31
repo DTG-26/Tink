@@ -65,46 +65,23 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
 
       {/* Profile Details Container */}
       <div className="max-w-4xl mx-auto px-4 pb-5 sm:px-6">
-        <div className="relative -mt-14 sm:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          {/* Logo & Identity */}
-          <div className="flex items-end gap-3.5">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-100">
-              {vendor.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={vendor.logo_url}
-                  alt={vendor.store_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Store className="w-10 h-10" style={{ color: accentColor }} />
-              )}
-            </div>
-
-            <div className="pt-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-                  {vendor.store_name}
-                </h1>
-                {isPro && (
-                  <span
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white shadow-2xs"
-                    style={{ backgroundColor: accentColor }}
-                    title="Verified Tink Pro Store"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                    Verified Store
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                {formatDisplayPhone(vendor.whatsapp_number, 'international')}
-              </p>
-            </div>
+        {/* Only the avatar overlaps the banner; store name & actions stay cleanly on the white background below */}
+        <div className="relative -mt-10 sm:-mt-12 mb-3 flex items-end justify-between gap-4">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white ring-4 ring-white shadow-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-100">
+            {vendor.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={vendor.logo_url}
+                alt={vendor.store_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Store className="w-10 h-10" style={{ color: accentColor }} />
+            )}
           </div>
 
           {/* Quick Actions & Status */}
-          <div className="flex items-center gap-2.5 pt-1 sm:pt-0 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap pt-12">
             {/* Store Open/Closed Badge */}
             {openStatus.isOpen ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -133,6 +110,28 @@ export const StoreHeader: React.FC<StoreHeaderProps> = ({ vendor }) => {
               Chat
             </button>
           </div>
+        </div>
+
+        {/* Store Name, Verified Badge & Phone cleanly below the banner */}
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+              {vendor.store_name}
+            </h1>
+            {isPro && (
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white shadow-2xs"
+                style={{ backgroundColor: accentColor }}
+                title="Verified Tink Pro Store"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                Verified Store
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            {formatDisplayPhone(vendor.whatsapp_number, 'international')}
+          </p>
         </div>
 
         {/* Bio / Description */}
