@@ -1,5 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/constants';
 import {
   ArrowRight,
   MessageCircle,
@@ -13,9 +15,108 @@ import {
   PackageCheck
 } from 'lucide-react';
 
+export const metadata: Metadata = {
+  title: {
+    absolute: 'Tink – Create Your Own Online Store in Nigeria'
+  },
+  description:
+    'Create your own branded online storefront with Tink. Showcase products, manage inventory, customise delivery zones and receive orders through WhatsApp.',
+  alternates: {
+    canonical: SITE_URL
+  },
+  openGraph: {
+    title: 'Tink – Create Your Own Online Store in Nigeria',
+    description:
+      'Create your own branded online storefront with Tink. Showcase products, manage inventory, customise delivery zones and receive orders through WhatsApp.',
+    url: SITE_URL,
+    siteName: 'Tink',
+    locale: 'en_NG',
+    type: 'website',
+    images: [
+      {
+        url: `${SITE_URL}/logo.png`,
+        width: 512,
+        height: 512,
+        alt: 'Tink – Create Your Own Online Store in Nigeria'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tink – Create Your Own Online Store in Nigeria',
+    description:
+      'Create your own branded online storefront with Tink. Showcase products, manage inventory, customise delivery zones and receive orders through WhatsApp.',
+    images: [`${SITE_URL}/logo.png`]
+  }
+};
+
 export default function HomePage() {
+  const sameAsLinks = [
+    process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM,
+    process.env.NEXT_PUBLIC_SOCIAL_TWITTER,
+    process.env.NEXT_PUBLIC_SOCIAL_TIKTOK
+  ].filter((link): link is string => Boolean(link));
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'Tink',
+        url: SITE_URL,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_URL}/logo.png`
+        },
+        description:
+          'Create your own branded online storefront with Tink. Showcase products, manage inventory, customise delivery zones and receive orders through WhatsApp.',
+        areaServed: {
+          '@type': 'Country',
+          name: 'Nigeria'
+        },
+        ...(sameAsLinks.length > 0 ? { sameAs: sameAsLinks } : {})
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: 'Tink',
+        alternateName: [
+          'Tink Nigeria',
+          'Tink Online Store',
+          'Tink Digital Storefront'
+        ],
+        description:
+          'Create your own branded online storefront with Tink. Showcase products, manage inventory, customise delivery zones and receive orders through WhatsApp.',
+        publisher: {
+          '@id': `${SITE_URL}/#organization`
+        },
+        inLanguage: 'en-NG'
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'Tink',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        url: SITE_URL,
+        description:
+          'Digital storefront technology platform for Nigerian businesses to create an online store, manage inventory, customise delivery zones, and receive WhatsApp orders.',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'NGN'
+        }
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       {/* 1. TOP STICKY NAVBAR */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -60,7 +161,7 @@ export default function HomePage() {
           {/* Catchy Pill Tag */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-6 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Tink • Your Shop in a Link — 100% Free for Nigerian Social Sellers</span>
+            <span>Tink • Launch Offer: Full Tink Pro Free for All Stores Until Mid-December</span>
           </div>
 
           {/* Main Headline */}
@@ -111,7 +212,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-blue-600" />
-              <span>Unlimited Products</span>
+              <span>Free Tier + Tink Pro Free Until Mid-Dec</span>
             </div>
           </div>
 
@@ -134,7 +235,7 @@ export default function HomePage() {
                       Verified
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">tink.ng/your-store</p>
+                  <p className="text-xs text-slate-500">tink.com.ng/your-store</p>
                 </div>
               </div>
 
@@ -152,6 +253,10 @@ export default function HomePage() {
                     <img
                       src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop"
                       alt="Burger"
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -172,6 +277,10 @@ export default function HomePage() {
                     <img
                       src="https://images.unsplash.com/photo-1585109649139-366815a0d713?w=100&h=100&fit=crop"
                       alt="Fries"
+                      width={48}
+                      height={48}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -248,7 +357,7 @@ export default function HomePage() {
                   Put Link in Your Instagram Bio
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Share your link (<span className="font-mono text-slate-800">tink.ng/your-store</span>) on WhatsApp status, Instagram bio, or TikTok.
+                  Share your link (<span className="font-mono text-slate-800">tink.com.ng/your-store</span>) on WhatsApp status, Instagram bio, or TikTok.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-1.5 text-[11px] font-semibold text-sky-600">
@@ -363,8 +472,9 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="flex items-center gap-5 font-semibold text-slate-600">
+          <div className="flex items-center gap-5 font-semibold text-slate-600 flex-wrap justify-center">
             <Link href="/register" className="hover:text-blue-600">Create Store</Link>
+            <Link href="/guides" className="hover:text-blue-600">Seller Guides</Link>
             <Link href="/dashboard" className="hover:text-blue-600">Dashboard</Link>
           </div>
 

@@ -18,7 +18,8 @@ import {
   Product,
   checkIsActivePro,
   checkIsProExpired,
-  getProductVariants
+  getProductVariants,
+  getProductCompareAtPrice
 } from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { MONETIZATION_CONFIG } from '@/lib/constants';
@@ -441,6 +442,9 @@ export default function DashboardProductsPage() {
         onSave={handleSaveProduct}
         initialProduct={editingProduct}
         initialVariants={editingProduct ? getProductVariants(editingProduct, vendor) : []}
+        initialCompareAtPrice={
+          editingProduct ? getProductCompareAtPrice(editingProduct, vendor) : null
+        }
         categories={categories}
         vendorId={vendor.id}
         isPro={isPro}

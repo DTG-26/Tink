@@ -192,13 +192,13 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold mb-3">
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>100% Free Forever • Unlimited Products</span>
+            <span>Launch Offer: Full Tink Pro Free Until Mid-December</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
             Create Your Tink Store
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-sm mx-auto">
-            Get your instant WhatsApp ordering catalog link in 60 seconds.
+            Get your instant WhatsApp ordering catalog link in 60 seconds. Enjoy all Tink Pro features free until mid-December (Free Tier up to 5 products or ₦3,000/mo Pro thereafter).
           </p>
         </div>
 

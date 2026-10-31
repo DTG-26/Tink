@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Vendor,
   Category,
   Product,
   checkIsActivePro,
   checkStoreOpenStatus,
-  getProductVariants
+  getProductVariants,
+  getProductCompareAtPrice,
+  getVendorAnnouncement
 } from '../types/database';
 import { StoreHeader } from './StoreHeader';
 import { CategoryPills } from './CategoryPills';
@@ -15,7 +17,7 @@ import { ProductCard } from './ProductCard';
 import { StickyCartBar } from './StickyCartBar';
 import { CheckoutDrawer } from './CheckoutDrawer';
 import { StoreFooter } from './StoreFooter';
-import { ShoppingBag, Search, Pin, Sparkles } from 'lucide-react';
+import { ShoppingBag, Search, Pin, Sparkles, Megaphone } from 'lucide-react';
 
 interface StorefrontViewProps {
   vendor: Vendor;
@@ -34,6 +36,21 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
   const isPro = checkIsActivePro(vendor);
   const accentColor = isPro && vendor.accent_color ? vendor.accent_color : '#2563EB';
   const openStatus = checkStoreOpenStatus(vendor);
+  const announcementText = isPro ? getVendorAnnouncement(vendor) : '';
+
+  // Record storefront visit (once per session per store)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !vendor.id) return;
+    const sessionKey = `tink_viewed_${vendor.id}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    sessionStorage.setItem(sessionKey, '1');
+
+    fetch('/api/store-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vendorId: vendor.id, type: 'view' })
+    }).catch(() => {});
+  }, [vendor.id]);
 
   // Pinned/Featured products for Pro vendors (max 3)
   const featuredProducts = useMemo(() => {
@@ -89,6 +106,17 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
         '--store-accent': accentColor
       } as React.CSSProperties}
     >
+      {/* Top Store Announcement / Promo Banner (Tink Pro) */}
+      {announcementText && (
+        <div
+          className="w-full py-2 px-4 text-white text-xs font-bold text-center flex items-center justify-center gap-2 shadow-2xs"
+          style={{ backgroundColor: accentColor }}
+        >
+          <Megaphone className="w-3.5 h-3.5 shrink-0 animate-bounce" />
+          <span>{announcementText}</span>
+        </div>
+      )}
+
       {/* Store Header */}
       <StoreHeader vendor={vendor} />
 
@@ -164,6 +192,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   isStoreOpen={openStatus.isOpen}
                   accentColor={accentColor}
                   variants={isPro ? getProductVariants(product, vendor) : []}
+                  compareAtPrice={isPro ? getProductCompareAtPrice(product, vendor) : null}
+                  storeSlug={vendor.slug}
+                  storeName={vendor.store_name}
                 />
               ))}
             </div>
@@ -190,6 +221,9 @@ export const StorefrontView: React.FC<StorefrontViewProps> = ({
                   isStoreOpen={openStatus.isOpen}
                   accentColor={accentColor}
                   variants={isPro ? getProductVariants(product, vendor) : []}
+                  compareAtPrice={isPro ? getProductCompareAtPrice(product, vendor) : null}
+                  storeSlug={vendor.slug}
+                  storeName={vendor.store_name}
                 />
               ))}
             </div>

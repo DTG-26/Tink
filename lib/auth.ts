@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { validateAndNormalizePhone } from './phone';
+import { FREE_PRO_PROMO_END_ISO } from './constants';
 import { Vendor } from '@/types/database';
 
 export interface IdentifierParseResult {
@@ -131,8 +132,8 @@ export async function signUpVendor(params: SignUpVendorParams): Promise<AuthResp
       account_number: params.accountNumber?.trim() || null,
       account_name: params.accountName?.trim() || params.storeName.trim(),
       is_open: true,
-      is_pro: true, // Unlimited free tier
-      pro_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+      is_pro: true, // Free Tink Pro early access until Mid-December
+      pro_expires_at: new Date(FREE_PRO_PROMO_END_ISO).toISOString()
     };
 
     const { data: vendorData, error: vendorError } = await supabase
@@ -232,6 +233,76 @@ export async function signOutVendor(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('tink_vendor');
     localStorage.removeItem('tink_vendor_id');
+  }
+}
+
+/**
+ * Send a password reset link (for email accounts) or return instructions for phone accounts
+ */
+export async function requestPasswordReset(
+  identifier: string,
+  redirectUrl: string
+): Promise<AuthResponse<{ isPhone: boolean; normalizedPhone?: string }>> {
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Supabase is not configured.' };
+  }
+
+  const parsed = parseAuthIdentifier(identifier);
+  if (parsed.error) {
+    return { success: false, error: parsed.error };
+  }
+
+  if (parsed.isPhone) {
+    return {
+      success: true,
+      data: { isPhone: true, normalizedPhone: parsed.normalizedPhone }
+    };
+  }
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.email, {
+      redirectTo: redirectUrl
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: { isPhone: false }
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to send reset link.';
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Update the currently authenticated user's password
+ */
+export async function updateVendorPassword(newPassword: string): Promise<AuthResponse> {
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Supabase is not configured.' };
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: 'New password must be at least 6 characters.' };
+  }
+
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to update password.';
+    return { success: false, error: msg };
   }
 }
 

@@ -10,8 +10,10 @@ import {
   Vendor,
   CustomerDetails,
   DirectCartOrder,
+  OrderLogEntry,
   checkIsActivePro,
-  getVendorDeliveryZones
+  getVendorDeliveryZones,
+  getVendorPromoCode
 } from '../types/database';
 import { useCart } from '../context/CartContext';
 import { formatNaira, generateOrderWhatsAppUrl } from '../lib/whatsapp';
@@ -27,7 +29,8 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Truck
+  Truck,
+  Tag
 } from 'lucide-react';
 
 interface CheckoutDrawerProps {
@@ -50,8 +53,12 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
   const isPro = checkIsActivePro(vendor);
   const deliveryZones = isPro ? getVendorDeliveryZones(vendor) : [];
   const hasDeliveryZones = deliveryZones.length > 0;
+  const activePromo = isPro ? getVendorPromoCode(vendor) : null;
 
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
+  const [promoInput, setPromoInput] = useState<string>('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   const [customer, setCustomer] = useState<CustomerDetails>({
     name: '',
@@ -79,8 +86,32 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
     ? deliveryZones.find((z) => z.id === selectedZoneId) || deliveryZones[0]
     : null;
 
+  const isPromoValid =
+    activePromo &&
+    activePromo.active &&
+    appliedPromoCode &&
+    appliedPromoCode.toUpperCase() === activePromo.code.toUpperCase();
+
+  const discountAmount = isPromoValid
+    ? Math.round((totalAmount * activePromo.discount_percent) / 100)
+    : 0;
+
   const deliveryFee = selectedZone ? selectedZone.fee : 0;
-  const grandTotal = totalAmount + deliveryFee;
+  const grandTotal = Math.max(0, totalAmount - discountAmount) + deliveryFee;
+
+  const handleApplyPromo = () => {
+    setPromoError(null);
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+
+    if (activePromo && activePromo.active && activePromo.code.toUpperCase() === code) {
+      setAppliedPromoCode(activePromo.code.toUpperCase());
+      setPromoError(null);
+    } else {
+      setAppliedPromoCode(null);
+      setPromoError('Invalid or expired promo code.');
+    }
+  };
 
   // Hydrate saved customer details from localStorage
   useEffect(() => {
@@ -207,9 +238,49 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
       },
       items,
       subtotalAmount: totalAmount,
+      discountCode: isPromoValid ? appliedPromoCode : null,
+      discountAmount: isPromoValid ? discountAmount : 0,
       deliveryZone: selectedZone,
       totalAmount: grandTotal
     };
+
+    // Fire-and-forget order log & click counter for vendor dashboard
+    try {
+      const orderEntry: OrderLogEntry = {
+        id: `ord-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        customer_name: customer.name.trim(),
+        customer_phone: phoneValidation.normalized,
+        customer_address: customer.address.trim(),
+        delivery_zone: selectedZone?.name,
+        delivery_fee: selectedZone?.fee,
+        discount_code: isPromoValid ? appliedPromoCode || undefined : undefined,
+        discount_amount: isPromoValid ? discountAmount : undefined,
+        total_amount: grandTotal,
+        items_summary: items.map((i) => `${i.quantity}x ${i.title}`).join(', '),
+        status: 'new'
+      };
+
+      const payload = JSON.stringify({
+        vendorId: vendor.id,
+        type: 'whatsapp_order',
+        orderEntry
+      });
+
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/store-event', blob);
+      } else {
+        fetch('/api/store-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch {
+      // Ignore analytics error
+    }
 
     // Synchronous redirect immediately (Zero popup blocker risk)
     const whatsappUrl = generateOrderWhatsAppUrl(order);
@@ -482,6 +553,42 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white"
               />
             </div>
+
+            {/* Promo Code Input (shown when store has an active promo code) */}
+            {activePromo && activePromo.active && (
+              <div className="pt-2 border-t border-slate-100">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Have a Promo / Discount Code?</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    placeholder="Enter code (e.g. DEC10)"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyPromo}
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {isPromoValid && (
+                  <p className="mt-1 text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Code {appliedPromoCode} applied ({activePromo.discount_percent}% off -₦{formatNaira(discountAmount)})!
+                  </p>
+                )}
+                {promoError && (
+                  <p className="mt-1 text-[11px] text-rose-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {promoError}
+                  </p>
+                )}
+              </div>
+            )}
           </form>
 
           {/* 3. Vendor Nigerian Bank Payment Notice */}
@@ -534,18 +641,26 @@ export const CheckoutDrawer: React.FC<CheckoutDrawerProps> = ({ vendor }) => {
 
         {/* Fixed Drawer Footer & WhatsApp Button */}
         <div className="p-4 sm:p-5 border-t border-slate-200 bg-white">
-          {selectedZone && (
+          {(selectedZone || (isPromoValid && discountAmount > 0)) && (
             <div className="space-y-1 mb-2 pb-2 border-b border-slate-100 text-xs">
               <div className="flex items-center justify-between text-slate-500">
                 <span>Items Subtotal</span>
                 <span className="font-semibold text-slate-700">₦{formatNaira(totalAmount)}</span>
               </div>
-              <div className="flex items-center justify-between text-slate-500">
-                <span>Delivery ({selectedZone.name})</span>
-                <span className="font-semibold text-slate-700">
-                  {selectedZone.fee > 0 ? `₦${formatNaira(selectedZone.fee)}` : 'FREE'}
-                </span>
-              </div>
+              {isPromoValid && discountAmount > 0 && (
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Promo ({appliedPromoCode})</span>
+                  <span className="font-bold">-₦{formatNaira(discountAmount)}</span>
+                </div>
+              )}
+              {selectedZone && (
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Delivery ({selectedZone.name})</span>
+                  <span className="font-semibold text-slate-700">
+                    {selectedZone.fee > 0 ? `₦${formatNaira(selectedZone.fee)}` : 'FREE'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

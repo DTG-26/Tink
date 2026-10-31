@@ -6,9 +6,16 @@
  */
 
 import React, { useState } from 'react';
-import { Product, Category, Vendor, getProductVariants } from '../../types/database';
+import {
+  Product,
+  Category,
+  Vendor,
+  getProductVariants,
+  getProductCompareAtPrice,
+  isWithinFreeProLaunchWindow
+} from '../../types/database';
 import { formatNaira } from '../../lib/whatsapp';
-import { MONETIZATION_CONFIG } from '../../lib/constants';
+import { MONETIZATION_CONFIG, SITE_URL } from '../../lib/constants';
 import {
   ShoppingBag,
   Edit2,
@@ -21,7 +28,9 @@ import {
   Sparkles,
   Lock,
   AlertTriangle,
-  Layers
+  Layers,
+  Share2,
+  Check
 } from 'lucide-react';
 
 interface ProductListProps {
@@ -53,6 +62,41 @@ export const ProductList: React.FC<ProductListProps> = ({
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [togglingFeaturedId, setTogglingFeaturedId] = useState<string | null>(null);
+  const [sharedProductId, setSharedProductId] = useState<string | null>(null);
+
+  const handleShareProductStatus = async (product: Product) => {
+    const storeSlug = vendor?.slug || '';
+    const storeUrl =
+      typeof window !== 'undefined' && storeSlug
+        ? `${window.location.origin}/${storeSlug}`
+        : storeSlug
+        ? `${SITE_URL}/${storeSlug}`
+        : SITE_URL;
+
+    const cmp = getProductCompareAtPrice(product, vendor);
+    const caption = `🔥 *${product.title}* — ₦${formatNaira(product.price)}${
+      cmp ? ` (was ₦${formatNaira(cmp)})` : ''
+    }${vendor?.store_name ? ` at *${vendor.store_name}*` : ''}!\n\nTap here to order directly on WhatsApp: ${storeUrl}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          text: caption,
+          url: storeUrl
+        });
+        return;
+      } catch {
+        // Fallback to clipboard copy
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(caption);
+      setSharedProductId(product.id);
+      setTimeout(() => setSharedProductId(null), 2200);
+    }
+  };
 
   const categoryMap = new Map<string, string>();
   for (const c of categories) {
@@ -149,13 +193,15 @@ export const ProductList: React.FC<ProductListProps> = ({
           </button>
         </div>
       ) : (
-        <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
+        <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-bold">Tink Pro Active:</span>
             <span className="text-slate-300">Unlimited products • {featuredCount}/3 Best-Sellers Pinned</span>
           </div>
-          <span className="text-[11px] font-semibold text-blue-300">₦3,000 / mo</span>
+          <span className="text-[11px] font-semibold text-blue-300">
+            {isWithinFreeProLaunchWindow() ? 'Free Launch Access Until Mid-December' : '₦3,000 / mo'}
+          </span>
         </div>
       )}
 
@@ -292,9 +338,16 @@ export const ProductList: React.FC<ProductListProps> = ({
                         )}
                       </div>
 
-                      <p className="text-xs font-extrabold text-blue-600 mt-0.5">
-                        ₦{formatNaira(product.price)}
-                      </p>
+                      <div className="flex items-baseline gap-1.5 mt-0.5">
+                        <p className="text-xs font-extrabold text-blue-600">
+                          ₦{formatNaira(product.price)}
+                        </p>
+                        {getProductCompareAtPrice(product, vendor) && (
+                          <span className="text-[11px] font-semibold text-slate-400 line-through">
+                            ₦{formatNaira(getProductCompareAtPrice(product, vendor)!)}
+                          </span>
+                        )}
+                      </div>
 
                       {product.description && (
                         <p className="text-[11px] text-slate-500 truncate max-w-sm mt-0.5">
@@ -366,6 +419,24 @@ export const ProductList: React.FC<ProductListProps> = ({
                     </button>
 
                     <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleShareProductStatus(product)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                        title="Copy ready-made WhatsApp Status caption & link for this item"
+                      >
+                        {sharedProductId === product.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-[11px] hidden sm:inline">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span className="text-[11px] hidden sm:inline">Share</span>
+                          </>
+                        )}
+                      </button>
                       <button
                         onClick={() => onEditProduct(product)}
                         className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"

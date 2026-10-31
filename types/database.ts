@@ -27,6 +27,33 @@ export interface ProductVariant {
   price: number; // Variant price in Naira
 }
 
+export interface PromoCode {
+  code: string; // e.g. "DEC10"
+  discount_percent: number; // e.g. 10 (for 10% off)
+  active: boolean;
+}
+
+export interface OrderLogItem {
+  title: string;
+  quantity: number;
+  price: number;
+}
+
+export interface OrderLogEntry {
+  id: string;
+  created_at: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  delivery_zone?: string;
+  delivery_fee?: number;
+  discount_code?: string;
+  discount_amount?: number;
+  total_amount: number;
+  items_summary: string; // e.g. "2x Monster Burger, 1x Fries"
+  status?: 'new' | 'completed';
+}
+
 export interface SocialLinks {
   instagram?: string;
   twitter?: string;
@@ -35,6 +62,12 @@ export interface SocialLinks {
   _delivery_zones?: DeliveryZone[];
   _business_hours?: BusinessHours;
   _product_variants?: Record<string, ProductVariant[]>;
+  _compare_at_prices?: Record<string, number | null>;
+  _announcement_text?: string;
+  _promo_code?: PromoCode | null;
+  _store_views?: number;
+  _whatsapp_clicks?: number;
+  _recent_orders?: OrderLogEntry[];
 }
 
 export interface Vendor {
@@ -99,6 +132,7 @@ export interface Product {
   title: string;
   description: string | null;
   price: number; // Stored as NUMERIC(10, 2) in Postgres, represented as number
+  compare_at_price?: number | null; // Optional original price for slash / discount display (e.g. ₦12,000 -> ₦9,500)
   image_url: string | null;
   is_available: boolean; // 1-tap out-of-stock toggle
   is_featured?: boolean; // Pinned / Best-seller toggle (Pro only, max 3)
@@ -121,18 +155,36 @@ export interface ProductWithCategory extends Product {
   category?: Category | null;
 }
 
+import { FREE_PRO_PROMO_END_ISO } from '../lib/constants';
+
 // ==============================================================================
 // 2. MONETIZATION, PRO FEATURES & SCHEDULE HELPERS
 // ==============================================================================
 
 /**
+ * Checks whether the platform is currently within the Free Tink Pro Early-Access window
+ * (through Mid-December: Dec 15, 2026).
+ */
+export function isWithinFreeProLaunchWindow(): boolean {
+  const promoEnd = new Date(FREE_PRO_PROMO_END_ISO);
+  return !isNaN(promoEnd.getTime()) && Date.now() < promoEnd.getTime();
+}
+
+/**
  * Evaluates vendor active Pro subscription status according to Blueprint Section 2:
- * isActivePro = (is_pro == true) && (pro_expires_at != null) && (new Date(pro_expires_at) > new Date())
+ * - During the Mid-December Free Launch Window, every valid vendor store automatically gets Tink Pro.
+ * - After Mid-December: isActivePro = (is_pro == true) && (pro_expires_at != null) && (new Date(pro_expires_at) > new Date())
  */
 export function checkIsActivePro(
   vendor: Pick<Vendor, 'is_pro' | 'pro_expires_at'> | null | undefined
 ): boolean {
-  if (!vendor || !vendor.is_pro || !vendor.pro_expires_at) {
+  if (!vendor) {
+    return false;
+  }
+  if (isWithinFreeProLaunchWindow()) {
+    return true;
+  }
+  if (!vendor.is_pro || !vendor.pro_expires_at) {
     return false;
   }
   const expiryDate = new Date(vendor.pro_expires_at);
@@ -146,7 +198,7 @@ export function checkIsActivePro(
 export function checkIsProExpired(
   vendor: Pick<Vendor, 'is_pro' | 'pro_expires_at'> | null | undefined
 ): boolean {
-  if (!vendor || !vendor.pro_expires_at) {
+  if (!vendor || isWithinFreeProLaunchWindow() || !vendor.pro_expires_at) {
     return false;
   }
   const expiryDate = new Date(vendor.pro_expires_at);
@@ -211,6 +263,65 @@ export function getProductVariants(
     return fallbackMap[product.id];
   }
   return [];
+}
+
+/**
+ * Retrieves a product's compare_at_price (supports product.compare_at_price or vendor.social_links._compare_at_prices fallback)
+ */
+export function getProductCompareAtPrice(
+  product: Product | null | undefined,
+  vendor?: Vendor | null
+): number | null {
+  if (!product) return null;
+  if (typeof product.compare_at_price === 'number' && product.compare_at_price > product.price) {
+    return product.compare_at_price;
+  }
+  const fallbackMap = vendor?.social_links?._compare_at_prices;
+  if (fallbackMap && typeof fallbackMap[product.id] === 'number') {
+    const val = fallbackMap[product.id]!;
+    if (val > product.price) return val;
+  }
+  return null;
+}
+
+/**
+ * Retrieves the vendor's top store announcement banner text
+ */
+export function getVendorAnnouncement(vendor: Vendor | null | undefined): string {
+  if (!vendor) return '';
+  return vendor.social_links?._announcement_text?.trim() || '';
+}
+
+/**
+ * Retrieves the vendor's active promo code configuration
+ */
+export function getVendorPromoCode(vendor: Vendor | null | undefined): PromoCode | null {
+  if (!vendor) return null;
+  const promo = vendor.social_links?._promo_code;
+  if (promo && promo.code && promo.discount_percent > 0) {
+    return promo;
+  }
+  return null;
+}
+
+/**
+ * Retrieves store analytics & recent orders from vendor.social_links
+ */
+export function getVendorAnalytics(vendor: Vendor | null | undefined): {
+  storeViews: number;
+  whatsappClicks: number;
+  recentOrders: OrderLogEntry[];
+} {
+  if (!vendor) {
+    return { storeViews: 0, whatsappClicks: 0, recentOrders: [] };
+  }
+  return {
+    storeViews: vendor.social_links?._store_views || 0,
+    whatsappClicks: vendor.social_links?._whatsapp_clicks || 0,
+    recentOrders: Array.isArray(vendor.social_links?._recent_orders)
+      ? vendor.social_links!._recent_orders!
+      : []
+  };
 }
 
 /**
@@ -352,6 +463,8 @@ export interface DirectCartOrder {
   customer: CustomerDetails;
   items: CartItem[];
   subtotalAmount?: number;
+  discountCode?: string | null;
+  discountAmount?: number;
   deliveryZone?: DeliveryZone | null;
   totalAmount: number;
 }

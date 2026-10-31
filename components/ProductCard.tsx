@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { Product, ProductVariant } from '../types/database';
 import { formatNaira } from '../lib/whatsapp';
+import { SITE_URL } from '../lib/constants';
 import { useCart } from '../context/CartContext';
-import { Plus, Minus, PackageX, ShoppingBag, Pin } from 'lucide-react';
+import { Plus, Minus, PackageX, ShoppingBag, Pin, Share2, Check } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,9 @@ interface ProductCardProps {
   isStoreOpen: boolean;
   accentColor?: string;
   variants?: ProductVariant[];
+  compareAtPrice?: number | null;
+  storeSlug?: string;
+  storeName?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -19,9 +23,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   categoryName,
   isStoreOpen,
   accentColor,
-  variants = []
+  variants = [],
+  compareAtPrice = null,
+  storeSlug,
+  storeName
 }) => {
   const { addItem, updateQuantity, getItemQuantity } = useCart();
+  const [sharedStatus, setSharedStatus] = useState(false);
 
   const hasVariants = Array.isArray(variants) && variants.length > 0;
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
@@ -33,10 +41,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     : null;
 
   const activePrice = selectedVariant ? selectedVariant.price : product.price;
+  const hasSlashDiscount =
+    typeof compareAtPrice === 'number' && compareAtPrice > activePrice;
+  const discountPercent = hasSlashDiscount
+    ? Math.round(((compareAtPrice! - activePrice) / compareAtPrice!) * 100)
+    : 0;
+
   const cartLineId = selectedVariant ? `${product.id}__${selectedVariant.id}` : product.id;
 
   const quantity = getItemQuantity(cartLineId);
   const isAvailable = product.is_available && isStoreOpen;
+
+  const handleShareItem = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const storeUrl =
+      typeof window !== 'undefined' && storeSlug
+        ? `${window.location.origin}/${storeSlug}`
+        : storeSlug
+        ? `${SITE_URL}/${storeSlug}`
+        : SITE_URL;
+
+    const shareCaption = `🔥 *${product.title}* — ₦${formatNaira(activePrice)}${
+      hasSlashDiscount ? ` (was ₦${formatNaira(compareAtPrice!)})` : ''
+    }${storeName ? ` at *${storeName}*` : ''}!\n\nTap here to order directly on WhatsApp: ${storeUrl}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          text: shareCaption,
+          url: storeUrl
+        });
+        return;
+      } catch {
+        // Fallback to clipboard copy
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareCaption);
+      setSharedStatus(true);
+      setTimeout(() => setSharedStatus(false), 2000);
+    }
+  };
 
   const handleAdd = () => {
     if (!isAvailable) return;
@@ -97,13 +144,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          {/* Out-of-Stock Badge */}
-          {!product.is_available && (
+          {/* Out-of-Stock or Discount Sale Badge */}
+          {!product.is_available ? (
             <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-white/95 border border-rose-200 px-2 py-0.5 text-[11px] font-bold text-rose-700 shadow-sm backdrop-blur-sm">
               <PackageX className="w-3.5 h-3.5 text-rose-600" />
               Sold Out
             </div>
-          )}
+          ) : hasSlashDiscount && discountPercent > 0 ? (
+            <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-rose-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
+              -{discountPercent}% SALE
+            </div>
+          ) : null}
+
+          {/* 1-Tap Share to WhatsApp Status / Copy Caption button */}
+          <button
+            type="button"
+            onClick={handleShareItem}
+            title="Share item to WhatsApp Status"
+            className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200/80 flex items-center justify-center transition-transform active:scale-90"
+          >
+            {sharedStatus ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Share2 className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
 
         {/* Product Details */}
@@ -184,9 +249,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span className="text-[11px] text-slate-400 font-medium">
             {selectedVariant ? selectedVariant.name : 'Price'}
           </span>
-          <span className="text-sm sm:text-base font-extrabold text-slate-950">
-            ₦{formatNaira(activePrice)}
-          </span>
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-sm sm:text-base font-extrabold text-slate-950">
+              ₦{formatNaira(activePrice)}
+            </span>
+            {hasSlashDiscount && (
+              <span className="text-[11px] font-semibold text-slate-400 line-through">
+                ₦{formatNaira(compareAtPrice!)}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Action Controls */}

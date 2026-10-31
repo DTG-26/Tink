@@ -14,10 +14,14 @@ import {
   Product,
   checkIsActivePro,
   checkIsProExpired,
-  getProductVariants
+  isWithinFreeProLaunchWindow,
+  getProductVariants,
+  getProductCompareAtPrice,
+  getVendorAnalytics
 } from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { MONETIZATION_CONFIG } from '@/lib/constants';
+import { formatNaira } from '@/lib/whatsapp';
 import { signOutVendor } from '@/lib/auth';
 import { ProductList } from '@/components/dashboard/ProductList';
 import { ProductModal } from '@/components/dashboard/ProductModal';
@@ -42,7 +46,11 @@ import {
   Clock,
   Lock,
   Pin,
-  QrCode
+  QrCode,
+  Eye,
+  MessageCircle,
+  Receipt,
+  MapPin
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -52,7 +60,7 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders'>('products');
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -230,16 +238,26 @@ export default function DashboardPage() {
   const handleSaveProduct = async (productData: Partial<Product>) => {
     if (!vendor) return;
 
-    const persistVariantsFallback = async (productId: string, variantsList: Product['variants']) => {
+    const persistProductMetaFallback = async (
+      productId: string,
+      variantsList: Product['variants'],
+      compareAt: number | null | undefined
+    ) => {
       if (!isPro) return;
       const existingVariantsMap = vendor.social_links?._product_variants || {};
+      const existingCompareMap = vendor.social_links?._compare_at_prices || {};
       const nextVariantsMap = {
         ...existingVariantsMap,
         [productId]: variantsList || []
       };
+      const nextCompareMap = {
+        ...existingCompareMap,
+        [productId]: compareAt ?? null
+      };
       const nextSocialLinks = {
         ...(vendor.social_links || {}),
-        _product_variants: nextVariantsMap
+        _product_variants: nextVariantsMap,
+        _compare_at_prices: nextCompareMap
       };
       const updatedVendor: Vendor = {
         ...vendor,
@@ -264,7 +282,7 @@ export default function DashboardPage() {
       );
       setProducts(updated);
 
-      const { variants, ...coreProductData } = productData;
+      const { variants, compare_at_price, ...coreProductData } = productData;
 
       if (isSupabaseConfigured) {
         await supabase
@@ -272,13 +290,14 @@ export default function DashboardPage() {
           .update(coreProductData)
           .eq('id', productData.id);
 
-        if (isPro && variants !== undefined) {
-          // Try saving to dedicated variants column if migrated, plus social_links fallback
-          await supabase
-            .from('products')
-            .update({ variants })
-            .eq('id', productData.id);
-          await persistVariantsFallback(productData.id, variants);
+        if (isPro) {
+          if (variants !== undefined) {
+            await supabase
+              .from('products')
+              .update({ variants })
+              .eq('id', productData.id);
+          }
+          await persistProductMetaFallback(productData.id, variants, compare_at_price);
         }
       }
     } else {
@@ -310,16 +329,23 @@ export default function DashboardPage() {
         if (data) {
           const createdProduct: Product = {
             ...(data as Product),
+            compare_at_price: isPro ? productData.compare_at_price ?? null : null,
             variants: isPro ? productData.variants || [] : []
           };
           setProducts([...products, createdProduct]);
 
-          if (isPro && productData.variants && productData.variants.length > 0) {
-            await supabase
-              .from('products')
-              .update({ variants: productData.variants })
-              .eq('id', createdProduct.id);
-            await persistVariantsFallback(createdProduct.id, productData.variants);
+          if (isPro) {
+            if (productData.variants && productData.variants.length > 0) {
+              await supabase
+                .from('products')
+                .update({ variants: productData.variants })
+                .eq('id', createdProduct.id);
+            }
+            await persistProductMetaFallback(
+              createdProduct.id,
+              productData.variants,
+              productData.compare_at_price
+            );
           }
           return;
         } else if (error) {
@@ -494,6 +520,11 @@ export default function DashboardPage() {
 
   const inStockCount = products.filter((p) => p.is_available).length;
   const soldOutCount = products.filter((p) => !p.is_available).length;
+  const analytics = getVendorAnalytics(vendor);
+  const totalRevenueOrdered = analytics.recentOrders.reduce(
+    (sum, ord) => sum + (ord.total_amount || 0),
+    0
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased flex flex-col">
@@ -512,7 +543,9 @@ export default function DashboardPage() {
             {isPro ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
                 <Sparkles className="w-3 h-3 text-blue-600" />
-                Tink Pro • Unlimited
+                {isWithinFreeProLaunchWindow()
+                  ? 'Tink Pro • Free Until Mid-Dec'
+                  : 'Tink Pro • Unlimited'}
               </span>
             ) : isExpired ? (
               <button
@@ -707,7 +740,29 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+              <Eye className="w-3.5 h-3.5 text-blue-600" /> Store Views
+            </span>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
+              {analytics.storeViews.toLocaleString()}
+            </p>
+            <span className="text-[10px] text-slate-400">Catalog visits</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp Orders
+            </span>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-1">
+              {analytics.whatsappClicks.toLocaleString()}
+            </p>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              ₦{formatNaira(totalRevenueOrdered)} ordered
+            </span>
+          </div>
+
           <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
             <span className="text-xs text-slate-400 font-medium">Total Products</span>
             <p className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
@@ -746,10 +801,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200">
+        <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto">
           <button
             onClick={() => setActiveTab('products')}
-            className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'products'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -761,7 +816,7 @@ export default function DashboardPage() {
 
           <button
             onClick={() => setActiveTab('categories')}
-            className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'categories'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -769,6 +824,18 @@ export default function DashboardPage() {
           >
             <FolderTree className="w-4 h-4" />
             <span>Categories ({categories.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`inline-flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'orders'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Recent Orders ({analytics.recentOrders.length})</span>
           </button>
         </div>
 
@@ -790,12 +857,89 @@ export default function DashboardPage() {
               onDeleteProduct={handleDeleteProduct}
               onTriggerUpgrade={() => setIsUpgradeModalOpen(true)}
             />
-          ) : (
+          ) : activeTab === 'categories' ? (
             <CategoryManager
               categories={categories}
               onAddCategory={handleAddCategory}
               onDeleteCategory={handleDeleteCategory}
             />
+          ) : (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Recent WhatsApp Orders ({analytics.recentOrders.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Every time a customer clicks &ldquo;Send Order on WhatsApp&rdquo; on your storefront, their order is logged here.
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-extrabold text-emerald-800">
+                  Total Logged: ₦{formatNaira(totalRevenueOrdered)}
+                </div>
+              </div>
+
+              {analytics.recentOrders.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 space-y-2">
+                  <Receipt className="w-10 h-10 mx-auto stroke-1 text-slate-300" />
+                  <p className="text-xs font-bold text-slate-700">No orders logged yet</p>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                    Share your store link on WhatsApp Status or Instagram Bio to start receiving customer orders!
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {analytics.recentOrders.map((ord) => (
+                    <div
+                      key={ord.id}
+                      className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                            {ord.customer_name}
+                          </span>
+                          <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            ₦{formatNaira(ord.total_amount)}
+                          </span>
+                          {ord.delivery_zone && (
+                            <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                              🚚 {ord.delivery_zone}
+                            </span>
+                          )}
+                          {ord.discount_code && (
+                            <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                              🏷️ {ord.discount_code}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-700 font-medium">{ord.items_summary}</p>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>{ord.customer_address}</span>
+                          <span>•</span>
+                          <span>{new Date(ord.created_at).toLocaleString()}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`https://wa.me/${ord.customer_phone}?text=${encodeURIComponent(
+                            `Hello ${ord.customer_name}, thank you for your order from ${vendor.store_name}!`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold shadow-2xs transition-colors"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                          <span>Chat Buyer</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
@@ -810,6 +954,9 @@ export default function DashboardPage() {
         onSave={handleSaveProduct}
         initialProduct={editingProduct}
         initialVariants={editingProduct ? getProductVariants(editingProduct, vendor) : []}
+        initialCompareAtPrice={
+          editingProduct ? getProductCompareAtPrice(editingProduct, vendor) : null
+        }
         categories={categories}
         vendorId={vendor.id}
         isPro={isPro}

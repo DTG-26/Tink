@@ -41,7 +41,17 @@ export function formatNaira(amount: number): string {
  * _Please reply to confirm availability and acknowledge payment!_
  */
 export function compileOrderMessage(order: DirectCartOrder): string {
-  const { storeName, customer, items, subtotalAmount, deliveryZone, totalAmount, vendorBank } = order;
+  const {
+    storeName,
+    customer,
+    items,
+    subtotalAmount,
+    discountCode,
+    discountAmount,
+    deliveryZone,
+    totalAmount,
+    vendorBank
+  } = order;
 
   // Header & Customer details
   const header = `🛍️ *NEW ORDER - ${storeName}*\n------------------------------`;
@@ -54,6 +64,10 @@ export function compileOrderMessage(order: DirectCartOrder): string {
   if (deliveryZone) {
     const feeText = deliveryZone.fee > 0 ? `₦${formatNaira(deliveryZone.fee)}` : 'Free';
     customerInfo.push(`🚚 *Delivery Zone:* ${deliveryZone.name} (${feeText})`);
+  }
+
+  if (discountCode && discountAmount && discountAmount > 0) {
+    customerInfo.push(`🏷️ *Promo Code:* ${discountCode} (-₦${formatNaira(discountAmount)})`);
   }
 
   if (customer.note && customer.note.trim()) {
@@ -74,9 +88,14 @@ export function compileOrderMessage(order: DirectCartOrder): string {
 
   // Totals breakdown
   const totalLines = ['------------------------------'];
-  if (deliveryZone) {
-    const sub = subtotalAmount ?? items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const sub = subtotalAmount ?? items.reduce((s, i) => s + i.price * i.quantity, 0);
+  if (deliveryZone || (discountAmount && discountAmount > 0)) {
     totalLines.push(`📦 *Subtotal:* ₦${formatNaira(sub)}`);
+  }
+  if (discountCode && discountAmount && discountAmount > 0) {
+    totalLines.push(`🏷️ *Discount (${discountCode}):* -₦${formatNaira(discountAmount)}`);
+  }
+  if (deliveryZone) {
     totalLines.push(
       `🚚 *Delivery (${deliveryZone.name}):* ${
         deliveryZone.fee > 0 ? `₦${formatNaira(deliveryZone.fee)}` : 'FREE'

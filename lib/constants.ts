@@ -3,11 +3,21 @@
  * Conforms to Master Blueprint Rules
  */
 
+export const SITE_URL = 'https://tink.com.ng';
+
+/**
+ * Early-access launch window: every store automatically receives full Tink Pro features
+ * free of charge until Mid-December (December 15, 2026 23:59:59 WAT).
+ */
+export const FREE_PRO_PROMO_END_ISO = '2026-12-15T23:59:59+01:00';
+
 export const RESERVED_SLUGS = [
   'dashboard',
   'api',
   'login',
   'register',
+  'forgot-password',
+  'reset-password',
   'settings',
   'admin',
   'auth',
@@ -17,7 +27,10 @@ export const RESERVED_SLUGS = [
   'checkout',
   'cart',
   'pricing',
-  'support'
+  'support',
+  'guides',
+  'sitemap.xml',
+  'robots.txt'
 ] as const;
 
 export type ReservedSlug = typeof RESERVED_SLUGS[number];

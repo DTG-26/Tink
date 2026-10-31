@@ -22,7 +22,9 @@ import {
   checkIsActivePro,
   checkIsProExpired,
   getVendorDeliveryZones,
-  getVendorBusinessHours
+  getVendorBusinessHours,
+  getVendorAnnouncement,
+  getVendorPromoCode
 } from '@/types/database';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { validateAndNormalizePhone } from '@/lib/phone';
@@ -52,7 +54,9 @@ import {
   Truck,
   Plus,
   Trash2,
-  CalendarClock
+  CalendarClock,
+  Megaphone,
+  Tag
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = [
@@ -99,6 +103,12 @@ export default function DashboardSettingsPage() {
   // Pro Business Hours Schedule
   const [businessHours, setBusinessHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
 
+  // Pro Store Announcement Banner & Promo Code
+  const [announcementText, setAnnouncementText] = useState('');
+  const [promoCodeText, setPromoCodeText] = useState('');
+  const [promoDiscountPercent, setPromoDiscountPercent] = useState('');
+  const [promoActive, setPromoActive] = useState(false);
+
   // Featured product IDs (up to 3)
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
 
@@ -129,6 +139,17 @@ export default function DashboardSettingsPage() {
     setTiktok(v.social_links?.tiktok || '');
     setDeliveryZones(getVendorDeliveryZones(v));
     setBusinessHours(getVendorBusinessHours(v));
+    setAnnouncementText(getVendorAnnouncement(v));
+    const promo = getVendorPromoCode(v);
+    if (promo) {
+      setPromoCodeText(promo.code);
+      setPromoDiscountPercent(promo.discount_percent.toString());
+      setPromoActive(promo.active);
+    } else {
+      setPromoCodeText('');
+      setPromoDiscountPercent('');
+      setPromoActive(false);
+    }
   };
 
   useEffect(() => {
@@ -331,8 +352,11 @@ export default function DashboardSettingsPage() {
       account_name: accountName.trim() || null
     };
 
-    // Include Pro custom branding, delivery zones, and business hours
+    // Include Pro custom branding, delivery zones, business hours, announcement, and promo code
     if (isPro) {
+      const cleanedPromoCode = promoCodeText.trim().toUpperCase();
+      const parsedDiscount = Math.min(90, Math.max(0, parseFloat(promoDiscountPercent) || 0));
+
       vendorPayload.accent_color = accentColor || '#000000';
       vendorPayload.banner_url = bannerUrl.trim() || null;
       vendorPayload.bio = bio.trim() || null;
@@ -343,7 +367,16 @@ export default function DashboardSettingsPage() {
         twitter: twitter.trim() || '',
         tiktok: tiktok.trim() || '',
         _delivery_zones: finalZones,
-        _business_hours: businessHours
+        _business_hours: businessHours,
+        _announcement_text: announcementText.trim(),
+        _promo_code:
+          cleanedPromoCode && parsedDiscount > 0
+            ? {
+                code: cleanedPromoCode,
+                discount_percent: parsedDiscount,
+                active: promoActive
+              }
+            : null
       };
     }
 
@@ -1034,6 +1067,77 @@ export default function DashboardSettingsPage() {
                   placeholder="e.g. © 2026 Khalid Gourmet. Free delivery in Abuja for orders above ₦15,000."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 />
+              </div>
+
+              {/* 6. Top Store Announcement Banner */}
+              <div className="pt-4 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+                  <Megaphone className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Top Store Announcement Banner</span>
+                </label>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Displays a bold promotional bar at the very top of your storefront (leave empty to hide).
+                </p>
+                <input
+                  type="text"
+                  value={announcementText}
+                  onChange={(e) => setAnnouncementText(e.target.value)}
+                  placeholder="e.g. 🎉 Free delivery on all orders above ₦20,000 today! Use code DEC10 for 10% off."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+              </div>
+
+              {/* 7. Store Promo / Discount Code */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Store Promo / Discount Code</span>
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Let buyers enter a discount code at checkout to get a percentage off their order.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPromoActive(!promoActive)}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
+                      promoActive ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                    }`}
+                  >
+                    <span className="w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Promo Code (e.g. DEC10, FRIDAY20)
+                    </span>
+                    <input
+                      type="text"
+                      value={promoCodeText}
+                      onChange={(e) => setPromoCodeText(e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                      placeholder="DEC10"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Discount Percentage (%)
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={promoDiscountPercent}
+                      onChange={(e) => setPromoDiscountPercent(e.target.value)}
+                      placeholder="10"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
